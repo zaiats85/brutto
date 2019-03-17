@@ -123,9 +123,13 @@ const parseFeed = (feed) => {
         if(graphs[key]){
             //delete the graph
             graphs = objectWithoutKey(graphs, key);
+            /*@TODO toggle buttons with SVG*/
+            evt.target.style.backgroundColor = 'white';
         } else {
             //add the graph
             graphs[key] = tmp;
+            /*@TODO toggle buttons with SVG*/
+            evt.target.style.backgroundColor = tmp.color;
         }
 
         //redraw the scene
