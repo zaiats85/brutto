@@ -47,16 +47,7 @@ const max = arr => {
     }
     return max;
 };
-const min = input => {
-    if(!Array.isArray(arr)) throw new Error("array expected");
-    let min = 0;
-    for(let i = 0, r = arr.length; i < r; i++){
-        if(arr[i] < min && !isNaN(arr[i])){
-            min = arr[i];
-        }
-    }
-    return min;
-};
+
 const createCanvas = ({ width, height }, id) => {
     let canvas = document.createElement("canvas");
     canvas.width = width;
@@ -170,7 +161,8 @@ const parseFeed = (feed) => {
         ctx.moveTo(x, y);
         ctx.lineTo(canavsSize.width-x, y);
         ctx.font = "18px Arial";
-        ctx.fillText(val, x, y + 25);
+        ctx.scale(1, -1);
+        ctx.fillText(val, x, -(y +10));
         ctx.stroke();
         ctx.restore();
     };
@@ -207,12 +199,12 @@ const parseFeed = (feed) => {
 
     /*Canvas manipulations*/
     const draw = () => {
-        /*START*/
+
+        /*reassign each time*/
         let graphsRatio = {x: 1, y:[]};
 
         /*detect max X, Y*/
         Object.values(graphs).forEach(graph => {
-            debugger
             let { maxY } = graph;
             let tmp = ((canavsSize.height*0.9)/maxY).toPrecision(3);
             graphsRatio.y.push(tmp);
@@ -220,7 +212,6 @@ const parseFeed = (feed) => {
 
         /*draw axis*/
         for(let j = YINTERVAL; j > 0; j--){
-
             let y = 0.9*j*canavsSize.height/YINTERVAL;
             let val = parseInt(y/Math.min(...graphsRatio.y));
             let coords = { x: 50, y, val };
@@ -228,11 +219,10 @@ const parseFeed = (feed) => {
             drawLine(coords);
         }
 
+        /*draw graphs*/
         Object.entries(graphs).forEach(([key, value]) => {
             drawGraph(value, { rX: 10, rY: Math.min(...graphsRatio.y)})
         })
-
-        /*END*/
 
     };
 
