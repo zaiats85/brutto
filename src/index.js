@@ -56,13 +56,12 @@ init()
     });
 
 const parseFeed = (feed) => {
-    const graphs = [];
+    let graphs = [];
     const {colors, names, types, columns} = feed;
 
     /*CANVAS*/
     const mainImg = createCanvas(WIDHT, HEIGHT, 'mainImg');
     let ctx = mainImg.getContext("2d");
-    ctx.scale(1, 1);
 
     const drawGraph = (input) => {
         ctx.lineWidth = 3;
@@ -70,13 +69,31 @@ const parseFeed = (feed) => {
         ctx.strokeStyle = input.color;
         ctx.lineJoin = 'round';
 
-        const {x, y} = input.data;
+        const { x, y } = input.data;
 
-        for (let i = 0; i < x.length; i++) {
+        for (let i = 0, k = x.length; i < k; i++) {
             ctx.lineTo(i*10, y[i]);
         }
 
         ctx.stroke();
+
+    };
+
+    const drawControls = (key, value, color) => {
+        let button = document.createElement('button');
+        button.id = key;
+        button.innerText = value;
+        button.style.background = color;
+        button.style.width = "140px";
+        button.style.height = "50px";
+
+        button.addEventListener("click", (evt) => {
+            console.log(evt);
+            console.log(key);
+            console.log(value);
+
+        });
+        document.getElementById("controls").appendChild(button);
 
     };
 
@@ -92,8 +109,13 @@ const parseFeed = (feed) => {
         };
 
         graphs.push(graph);
+
+        drawControls(key, value, colors[key]);
         drawGraph(graph);
     });
+
+
+
 
     end(mainImg);
 
@@ -104,5 +126,6 @@ const deleteGraph = (data) => {
 };
 
 const end = (mainImg) => {
-    document.body.appendChild(mainImg);
+    document.getElementById("main").appendChild(mainImg);
 };
+
