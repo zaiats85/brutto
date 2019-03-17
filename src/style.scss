@@ -1,0 +1,12 @@
+#body {
+  display: flex;
+  justify-content: space-around;
+
+  #controls {
+    color: red;
+
+    &:hover {
+      color: blue;
+    }
+  }
+}

@@ -4,6 +4,7 @@ const url = "data.json";
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
 const WIDHT = 1200;
 const HEIGHT = 800;
+import './style.scss';
 
 /*TRANSPORT*/
 function getJson(method, url) {
