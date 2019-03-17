@@ -1,12 +1,9 @@
 body {
   display: flex;
-  justify-content: space-around;
+  flex-direction: column;
+  align-items: center;
+}
 
-  #controls {
-    background: red;
-
-    &:hover {
-      background: blue;
-    }
-  }
+#mainImg {
+  transform: scale(1, -1);
 }
