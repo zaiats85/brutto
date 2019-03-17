@@ -6,6 +6,7 @@ const url = "data.json";
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
 const canavsSize = { width: 1200, height: 500 };
 const buttonSize = { width: "140px", height: "50px" };
+const YINTERVAL = 5;
 
 let controls = document.getElementById("controls");
 let main = document.getElementById("main");
@@ -159,6 +160,21 @@ const parseFeed = (feed) => {
         draw()
     };
 
+    const drawLine = ({ x, y, val }) => {
+        ctx.save();
+        ctx.beginPath();
+
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'grey';
+
+        ctx.moveTo(x, y);
+        ctx.lineTo(canavsSize.width-x, y);
+        ctx.font = "18px Arial";
+        ctx.fillText(val, x, y + 25);
+        ctx.stroke();
+        ctx.restore();
+    };
+
     //create single graph
     const drawGraph = (input, {rX, rY}) => {
         const { color,  data:{ x, y } }  = input;
@@ -192,26 +208,32 @@ const parseFeed = (feed) => {
     /*Canvas manipulations*/
     const draw = () => {
         /*START*/
-
         let graphsRatio = {x: 1, y:[]};
 
         /*detect max X, Y*/
         Object.values(graphs).forEach(graph => {
+            debugger
             let { maxY } = graph;
             let tmp = ((canavsSize.height*0.9)/maxY).toPrecision(3);
             graphsRatio.y.push(tmp);
         });
 
+        /*draw axis*/
+        for(let j = YINTERVAL; j > 0; j--){
+
+            let y = 0.9*j*canavsSize.height/YINTERVAL;
+            let val = parseInt(y/Math.min(...graphsRatio.y));
+            let coords = { x: 50, y, val };
+
+            drawLine(coords);
+        }
+
         Object.entries(graphs).forEach(([key, value]) => {
-
-            drawGraph(value, { rX: 10   , rY: Math.min(...graphsRatio.y)})
-
+            drawGraph(value, { rX: 10, rY: Math.min(...graphsRatio.y)})
         })
 
         /*END*/
 
-
-        /*Object.values(graphs).forEach(drawGraph);*/
     };
 
     /*DOM manipulations*/
