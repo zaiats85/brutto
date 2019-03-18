@@ -4,11 +4,16 @@ body {
   align-items: center;
 }
 
-#mainImg {
+#mainImg, #helper {
   transform: scale(1, -1);
 }
 
-canvas {
+#helper {
+  margin-top: 50px;
+  margin-bottom: 50px;
+}
+
+canvas #mainImg{
   padding: 100px;
   border: 2px solid cadetblue;
 }

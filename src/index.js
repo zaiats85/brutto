@@ -5,9 +5,10 @@ const method = "GET";
 const url = "data.json";
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
 const canavsSize = { width: 1200, height: 500 };
+const canavsHelperSize = { width: 1200, height: 100 };
 const buttonSize = { width: "140px", height: "50px" };
 const YINTERVAL = 6;
-const XINTERVAL = 5;
+const CORRELATION = 0.9;
 
 let controls = document.getElementById("controls");
 let main = document.getElementById("main");
@@ -65,9 +66,15 @@ const objectWithoutKey = (object, key) => {
 // deep clone
 const deepClone = (input) =>  JSON.parse(JSON.stringify(input));
 
+// Jan 24 e.g.
 const getDate = timestamp => {
     let date = new Date(timestamp);
     return `${months[date.getMonth()]} ${date.getUTCDate()}`;
+};
+
+// get simple ratio A to B (with correlation);
+const getRatioAtoB = (a, b, c, precise = false) => {
+    return precise ? +((a/b)*c).toPrecision(precise) : +(a/b)*c;
 };
 
 /*RUNTIME*/
@@ -88,8 +95,13 @@ const parseFeed = (feed) => {
     const {colors, names, types, columns} = feed;
 
     /*CANVAS*/
+    // main
     const mainImg = createCanvas(canavsSize, 'mainImg');
     let ctx = mainImg.getContext("2d");
+
+    // helper
+    const helperImg = createCanvas(canavsHelperSize, 'helper');
+    let ctxHelp = helperImg.getContext("2d");
 
     const init = () => {
         // Form Graphs n Buttons
@@ -126,7 +138,11 @@ const parseFeed = (feed) => {
     //clear feed canvas
     const clearCanvas = () => {
         const { width, height } = canavsSize;
+        const { width: hwidth, height: hheight } = canavsHelperSize;
+
+        /*@TODO create single canvas SINGLE and split for thumb and main image*/
         ctx.clearRect(0, 0, width, height);
+        ctxHelp.clearRect(0, 0, hwidth, hheight);
     };
 
     //delete graph from feed canvas
@@ -152,18 +168,6 @@ const parseFeed = (feed) => {
         draw()
     };
 
-    const drawYLine = ({ x, y, val }) => {
-        /*draw xAxis*/
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-
-        ctx.scale(1, -1);
-        ctx.fillText(val, x, -(y +10));
-
-        /*draw xAxis*/
-        ctx.stroke();
-    };
-
     const drawXLine = ({ x, y, val }) => {
         ctx.save();
         ctx.lineWidth = 1;
@@ -183,6 +187,22 @@ const parseFeed = (feed) => {
         ctx.restore();
     };
 
+    const drawHelper = (input, { rX, rY }) => {
+        const { color,  data:{ x, y } } = input;
+        ctxHelp.lineWidth = 2;
+        ctxHelp.beginPath();
+        ctxHelp.strokeStyle = color;
+        ctxHelp.lineJoin = 'round';
+
+        // LINES
+        for (let i = 0, k = x.length; i < k; i++) {
+            ctxHelp.lineTo(i*rX, y[i]*rY);
+        }
+
+        ctxHelp.stroke();
+
+    };
+
     //create single graph
     const drawGraph = (input, { rX, rY }) => {
         const { color,  data:{ x, y } }  = input;
@@ -194,11 +214,8 @@ const parseFeed = (feed) => {
         // LINES
         for (let i = 0, k = x.length; i < k; i++) {
             ctx.lineTo(i*rX, y[i]*rY);
-
         }
-
         ctx.stroke();
-
     };
 
     const drawButton = ({id, color, label, size: { width, height }}) => {
@@ -218,33 +235,38 @@ const parseFeed = (feed) => {
     const draw = () => {
 
         /*reassign each time*/
-        let graphsRatio = { x: 1, y:[] };
+        let ratio = { x: 1, y:[], mX: 1, mY: [] };
 
-        /*detect max X, Y*/
+        /*detect X, Y ratios*/
         Object.values(graphs).forEach(graph => {
             let { maxY, maxX } = graph;
-            let tmp = ((canavsSize.height*0.9)/maxY).toPrecision(3);
-            graphsRatio.y.push(tmp);
-            graphsRatio.x = canavsSize.width/maxX.toPrecision(3)
+            const { height, width } = canavsSize;
+            const { height: hheight, width: hwidth } = canavsHelperSize;
+
+            ratio.y.push(getRatioAtoB(height , maxY, CORRELATION, 3));
+            ratio.mY.push(getRatioAtoB(hheight , maxY, CORRELATION, 3));
+            ratio.x = getRatioAtoB(width, maxX, 1, 3);
+            ratio.mX = getRatioAtoB(hwidth, maxX, 1, 3);
         });
 
         /*draw xAxis*/
         for(let j = 0; j < YINTERVAL; j++){
-            let y = 0.9*j*canavsSize.height/YINTERVAL;
-            let val = parseInt(y/Math.min(...graphsRatio.y));
-            let coords = { x: 50, y, val };
-            drawXLine(coords);
-        }
 
-        /*draw yAxis*/
-        for(let k = 0; k <= XINTERVAL; k++){
-            let x = k*canavsSize.width/XINTERVAL;
-            drawYLine({x, y: 15, val: "Feb 4"})
+            const { height } = canavsSize;
+
+            // interval height
+            let y = CORRELATION * j * height/YINTERVAL;
+
+            let val = parseInt(y/Math.min(...ratio.y));
+            let coords = { x: 50, y, val };
+
+            drawXLine(coords);
         }
 
         /*draw graphs*/
         Object.values(graphs).forEach(graph => {
-            drawGraph(graph, { rX: graphsRatio.x, rY: Math.min(...graphsRatio.y)})
+            drawGraph(graph, { rX: ratio.x, rY: Math.min(...ratio.y) });
+            drawHelper(graph, { rX: ratio.mX, rY:  Math.min(...ratio.mY)});
         })
 
     };
@@ -252,6 +274,7 @@ const parseFeed = (feed) => {
     /*DOM manipulations*/
     const end = (mainImg) => {
         main.appendChild(mainImg);
+        main.appendChild(helperImg);
         Object.values(buttons).forEach(drawButton);
     };
 
