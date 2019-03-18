@@ -1,0 +1,23 @@
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#mainImg, #helper {
+  transform: scale(1, -1);
+}
+
+#helper {
+  margin-top: 50px;
+  margin-bottom: 50px;
+}
+
+canvas #mainImg{
+  padding: 100px;
+  border: 2px solid cadetblue;
+}
+
+button {
+  border-radius: 32px;
+}
