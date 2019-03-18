@@ -6,7 +6,8 @@ const url = "data.json";
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
 const canavsSize = { width: 1200, height: 500 };
 const buttonSize = { width: "140px", height: "50px" };
-const YINTERVAL = 5;
+const YINTERVAL = 6;
+const XINTERVAL = 5;
 
 let controls = document.getElementById("controls");
 let main = document.getElementById("main");
@@ -66,7 +67,7 @@ const deepClone = (input) =>  JSON.parse(JSON.stringify(input));
 
 const getDate = timestamp => {
     let date = new Date(timestamp);
-    return months[date.getMonth()];
+    return `${months[date.getMonth()]} ${date.getUTCDate()}`;
 };
 
 /*RUNTIME*/
@@ -94,7 +95,7 @@ const parseFeed = (feed) => {
         // Form Graphs n Buttons
         Object.entries(names).forEach(([key, value]) => {
 
-            let x =  columns.find(col => col.includes("x"));
+            let x =  columns.find(col => col.includes("x")).map(getDate);
             let y = columns.find(col => col.includes(key));
 
             /*@TODO add new Graph() es6 class*/
@@ -151,18 +152,33 @@ const parseFeed = (feed) => {
         draw()
     };
 
-    const drawLine = ({ x, y, val }) => {
-        ctx.save();
+    const drawYLine = ({ x, y, val }) => {
+        /*draw xAxis*/
         ctx.beginPath();
-
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'grey';
-
         ctx.moveTo(x, y);
-        ctx.lineTo(canavsSize.width-x, y);
-        ctx.font = "18px Arial";
+
         ctx.scale(1, -1);
         ctx.fillText(val, x, -(y +10));
+
+        /*draw xAxis*/
+        ctx.stroke();
+    };
+
+    const drawXLine = ({ x, y, val }) => {
+        ctx.save();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'grey';
+        ctx.font = "18px Arial";
+
+        /*draw xAxis*/
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(canavsSize.width-x, y);
+
+        ctx.scale(1, -1);
+        ctx.fillText(val, x, -(y +10));
+
+        /*draw yAxis*/
         ctx.stroke();
         ctx.restore();
     };
@@ -178,6 +194,7 @@ const parseFeed = (feed) => {
         // LINES
         for (let i = 0, k = x.length; i < k; i++) {
             ctx.lineTo(i*rX, y[i]*rY);
+
         }
 
         ctx.stroke();
@@ -205,23 +222,29 @@ const parseFeed = (feed) => {
 
         /*detect max X, Y*/
         Object.values(graphs).forEach(graph => {
-            let { maxY } = graph;
+            let { maxY, maxX } = graph;
             let tmp = ((canavsSize.height*0.9)/maxY).toPrecision(3);
             graphsRatio.y.push(tmp);
+            graphsRatio.x = canavsSize.width/maxX.toPrecision(3)
         });
 
-        /*draw axis*/
-        for(let j = YINTERVAL; j > 0; j--){
+        /*draw xAxis*/
+        for(let j = 0; j < YINTERVAL; j++){
             let y = 0.9*j*canavsSize.height/YINTERVAL;
             let val = parseInt(y/Math.min(...graphsRatio.y));
             let coords = { x: 50, y, val };
+            drawXLine(coords);
+        }
 
-            drawLine(coords);
+        /*draw xAxis*/
+        for(let k = 0; k <= XINTERVAL; k++){
+            let x = k*canavsSize.width/XINTERVAL;
+            drawYLine({x, y: 15, val: "Feb 4"})
         }
 
         /*draw graphs*/
-        Object.entries(graphs).forEach(([key, value]) => {
-            drawGraph(value, { rX: 10, rY: Math.min(...graphsRatio.y)})
+        Object.values(graphs).forEach(graph => {
+            drawGraph(graph, { rX: graphsRatio.x, rY: Math.min(...graphsRatio.y)})
         })
 
     };
