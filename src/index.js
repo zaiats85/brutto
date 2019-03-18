@@ -184,7 +184,7 @@ const parseFeed = (feed) => {
     };
 
     //create single graph
-    const drawGraph = (input, {rX, rY}) => {
+    const drawGraph = (input, { rX, rY }) => {
         const { color,  data:{ x, y } }  = input;
         ctx.lineWidth = 3;
         ctx.beginPath();
@@ -218,7 +218,7 @@ const parseFeed = (feed) => {
     const draw = () => {
 
         /*reassign each time*/
-        let graphsRatio = {x: 1, y:[]};
+        let graphsRatio = { x: 1, y:[] };
 
         /*detect max X, Y*/
         Object.values(graphs).forEach(graph => {
@@ -236,7 +236,7 @@ const parseFeed = (feed) => {
             drawXLine(coords);
         }
 
-        /*draw xAxis*/
+        /*draw yAxis*/
         for(let k = 0; k <= XINTERVAL; k++){
             let x = k*canavsSize.width/XINTERVAL;
             drawYLine({x, y: 15, val: "Feb 4"})
