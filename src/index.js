@@ -120,6 +120,7 @@ const parseFeed = (feed) => {
     /*CANVAS*/
     const mainImg = createCanvas(canavsSize, 'mainImg');
     let ctx = mainImg.getContext("2d");
+        ctx.font = "18px Arial";
 
     // helper
     let offsetX = mainImg.getBoundingClientRect().left;
@@ -200,7 +201,6 @@ const parseFeed = (feed) => {
         ctx.save();
         ctx.lineWidth = 1;
         ctx.strokeStyle = 'grey';
-        ctx.font = "18px Arial";
 
         /*draw xAxis*/
         ctx.beginPath();
@@ -215,31 +215,23 @@ const parseFeed = (feed) => {
         ctx.restore();
     };
 
-    const drawHelper = (input, {rX, rY}) => {
-        const {color, data: {x, y}} = input;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.strokeStyle = color;
-        ctx.lineJoin = 'round';
-        // LINES
-        for (let i = 0, k = x.length; i < k; i++) {
-            ctx.lineTo(i * rX, y[i] * rY);
-        }
-        ctx.stroke();
-    };
-
-
     //create single graph
-    const drawGraph = (input, {rX, rY}) => {
-        let {color, data: {x, y}} = input;
-        ctx.lineWidth = 3;
+    const drawGraph = (input, {rX, rY}, separate = 0) => {
+        let {color, data: {x, y}, lineWidth} = input;
+        ctx.lineWidth = lineWidth;
         ctx.beginPath();
         ctx.strokeStyle = color;
         ctx.lineJoin = 'round';
 
         // LINES
         for (let i = 0, k = x.length; i < k; i++) {
-            ctx.lineTo(i * rX, y[i] * rY + SEPARATE);
+            ctx.lineTo(i * rX, y[i] * rY + separate);
+            if(i%6 === 1 && separate){
+                ctx.save();
+                ctx.scale(1, -1);
+                ctx.fillText(getDate(x[i]), i*rX, -(separate-25));
+                ctx.restore();
+            }
         }
 
         ctx.stroke();
@@ -391,33 +383,31 @@ const parseFeed = (feed) => {
                 end = conWidth;
             }
 
+            /*@TODO refactir this awfull code*/
             let x0 = Math.round(graph.data.x.length * getRatioAtoB(start, width, 1));
             let x1 = Math.round(graph.data.x.length * getRatioAtoB(end, width, 1));
-
             let foo = deepClone(graph);
-
             foo.data.x = deepClone(graph.data.x).splice(x0, x1);
             foo.data.y = deepClone(graph.data.y).splice(x0, x1);
+            foo.lineWidth = 3;
+            graph.lineWidth = 2;
 
             ratio.x = getRatioAtoB(width, foo.data.x.length, 1, 3);
             ratio.y.push(getRatioAtoB(graphHeight, Math.max(...foo.data.y), CORRELATION, 3));
 
             // draw thumb
-            drawHelper(graph, {rX: ratio.mX, rY: Math.min(...ratio.mY)});
+            drawGraph(graph, {rX: ratio.mX, rY: Math.min(...ratio.mY)});
 
             // draw graph
-            drawGraph(foo, {rX: ratio.x, rY: Math.min(...ratio.y)});
+            drawGraph(foo, {rX: ratio.x, rY: Math.min(...ratio.y)}, SEPARATE);
         });
 
         /*draw xAxis*/
         for (let j = 0; j < YINTERVAL; j++) {
-            const {height} = canavsSize;
-
             // interval height
             let y = CORRELATION * j * graphHeight  / YINTERVAL;
             let val = parseInt(y / Math.min(...ratio.y));
-            let coords = {x: 50, y, val};
-            drawXLine(coords);
+            drawXLine({x: 50, y, val});
         }
 
     };
