@@ -10,6 +10,7 @@ const graphHeight = 500;
 const buttonSize = {width: "140px", height: "50px"};
 const YINTERVAL = 6;
 const CORRELATION = 0.9;
+const PRECISION = 3;
 const SEPARATE = 150;
 
 /*DOM*/
@@ -116,6 +117,7 @@ const parseFeed = (feed) => {
     let cachedGraph = {};
     let buttons = {};
     const {colors, names, types, columns} = feed;
+    const {width, height} = canavsSize;
 
     /*CANVAS*/
     const mainImg = createCanvas(canavsSize, 'mainImg');
@@ -168,15 +170,12 @@ const parseFeed = (feed) => {
     };
 
     //clear feed canvas
-    const clearCanvas = () => {
-        const {width, height} = canavsSize;
-        ctx.clearRect(0, 0, width, height);
-    };
+    const clearCanvas = ({width, height}) => ctx.clearRect(0, 0, width, height);
 
     //delete graph from feed canvas
     const toggleGraph = (evt) => {
         //clear the feed canvas
-        clearCanvas();
+        clearCanvas(canavsSize);
         const key = evt.target.id;
         const tmp = cachedGraph[key];
 
@@ -198,6 +197,7 @@ const parseFeed = (feed) => {
 
     const drawXLine = ({x, y, val}) => {
         let dY = y + SEPARATE;
+        let {width} = canavsSize;
         ctx.save();
         ctx.lineWidth = 1;
         ctx.strokeStyle = 'grey';
@@ -205,12 +205,11 @@ const parseFeed = (feed) => {
         /*draw xAxis*/
         ctx.beginPath();
         ctx.moveTo(x, dY);
-        ctx.lineTo(canavsSize.width - x, dY);
+        ctx.lineTo(width - x, dY);
 
         ctx.scale(1, -1);
         ctx.fillText(val, x, -(dY + 10));
 
-        /*draw yAxis*/
         ctx.stroke();
         ctx.restore();
     };
@@ -226,7 +225,8 @@ const parseFeed = (feed) => {
         // LINES
         for (let i = 0, k = x.length; i < k; i++) {
             ctx.lineTo(i * rX, y[i] * rY + separate);
-            if(i%6 === 1 && separate){
+
+            if(i%5 === 1 && separate){
                 ctx.save();
                 ctx.scale(1, -1);
                 ctx.fillText(getDate(x[i]), i*rX, -(separate-25));
@@ -334,7 +334,6 @@ const parseFeed = (feed) => {
     }
 
     /*end*/
-
     const drawButton = ({id, color, label, size: {width, height}}) => {
         let button = document.createElement('button');
         button.id = id;
@@ -348,31 +347,26 @@ const parseFeed = (feed) => {
 
     };
 
-    function clear() {
-        ctx.clearRect(0, 0, canavsSize.width, canavsSize.height);
-    }
-
     /*Canvas manipulations*/
     const draw = () => {
 
-        clear();
+        clearCanvas(canavsSize);
 
         // draw control
         drawControl();
 
         /*reassign each time*/
         let ratio = {x: 1, y: [], mX: 1, mY: []};
+        let {x: xpos, width: conWidth} = control;
 
         /*detect X, Y ratios*/
         /*draw graphs*/
         Object.values(graphs).forEach(graph => {
-            const {width} = canavsSize;
-            let {maxY, maxX} = graph;
-            let {x: xpos, width: conWidth} = control;
+            let {maxY, maxX, data: {x, y}} = graph;
             let start, end;
 
-            ratio.mY.push(getRatioAtoB(thumbHeight, maxY, CORRELATION, 3));
-            ratio.mX = getRatioAtoB(width, maxX, 1, 3);
+            ratio.mY.push(getRatioAtoB(thumbHeight, maxY, CORRELATION, PRECISION));
+            ratio.mX = getRatioAtoB(width, maxX, 1, PRECISION);
 
             //start
             if (xpos <= 0) {
@@ -383,17 +377,19 @@ const parseFeed = (feed) => {
                 end = conWidth;
             }
 
-            /*@TODO refactir this awfull code*/
-            let x0 = Math.round(graph.data.x.length * getRatioAtoB(start, width, 1));
-            let x1 = Math.round(graph.data.x.length * getRatioAtoB(end, width, 1));
+            /*@TODO refactor this awfull code*/
+            let x0 = Math.round(x.length * getRatioAtoB(start, width, 1));
+            let x1 = Math.round(x.length * getRatioAtoB(end, width, 1));
+
             let foo = deepClone(graph);
-            foo.data.x = deepClone(graph.data.x).splice(x0, x1);
-            foo.data.y = deepClone(graph.data.y).splice(x0, x1);
+            foo.data.x = deepClone(x).splice(x0, x1);
+            foo.data.y = deepClone(y).splice(x0, x1);
             foo.lineWidth = 3;
             graph.lineWidth = 2;
 
-            ratio.x = getRatioAtoB(width, foo.data.x.length, 1, 3);
-            ratio.y.push(getRatioAtoB(graphHeight, Math.max(...foo.data.y), CORRELATION, 3));
+            ratio.x = getRatioAtoB(width, foo.data.x.length, 1, PRECISION);
+
+            ratio.y.push(getRatioAtoB(graphHeight, max(foo.data.y), CORRELATION, PRECISION));
 
             // draw thumb
             drawGraph(graph, {rX: ratio.mX, rY: Math.min(...ratio.mY)});
