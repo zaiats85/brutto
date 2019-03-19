@@ -13,6 +13,18 @@ const CORRELATION = 0.9;
 let controls = document.getElementById("controls");
 let main = document.getElementById("main");
 
+// control chart
+let control = {
+    x: 0,
+    y: 8,
+    width: 350,
+    height: 100,
+    fill: "#142324",
+    type: "rectangle",
+    isDragging: false,
+    isResizing: false
+};
+
 /*TRANSPORT*/
 function getJson(method, url) {
     return new Promise(function (resolve, reject) {
@@ -104,18 +116,6 @@ const parseFeed = (feed) => {
     let ctxHelp = helperImg.getContext("2d");
     let offsetX = helperImg.getBoundingClientRect().left;
 
-    // control chart
-    let control = {
-        x: 400,
-        y: 8,
-        width: 400,
-        height: 100,
-        fill: "#142324",
-        type: "rectangle",
-        isDragging: false,
-        isResizing: false
-    };
-
     // listen for mouse events
     let dragok = false;
     let dragL = false;
@@ -157,6 +157,8 @@ const parseFeed = (feed) => {
         draw();
         end(mainImg);
     };
+
+
 
     //clear feed canvas
     const clearCanvas = () => {
@@ -226,24 +228,49 @@ const parseFeed = (feed) => {
 
     };
 
+
+
     //create single graph
     const drawGraph = (input, {rX, rY}) => {
-        const {color, data: {x, y}} = input;
+
+        let {color, data: {x, y}} = input;
+        let { x: xpos, width } = control;
+
+        /*start*/
+        let start, end;
+        if(xpos <= 0) {
+            start = 0;
+            end =  xpos+width;
+        } else {
+            start = xpos;
+            end = width;
+        }
+
+        let fetch1 = (start/canavsHelperSize.width);
+        let fetch2 = (end/canavsHelperSize.width);
+
+        /*end*/
+
+        let x0 = Math.round(x.length * fetch1);
+        let x1 = Math.round(x.length * fetch2);
+        let sx = deepClone(x).splice(x0, x1);
+        let sy = deepClone(y).splice(x0, x1);
+
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.strokeStyle = color;
         ctx.lineJoin = 'round';
 
         // LINES
-        for (let i = 0, k = x.length; i < k; i++) {
-            ctx.lineTo(i * rX, y[i] * rY);
+        for (let i = 0, k = sx.length; i < k; i++) {
+            ctx.lineTo(i * 30, sy[i] * rY);
         }
         ctx.stroke();
     };
 
     // create draggable && resizable rectangle
     const drawControl = () => {
-        let {fill} = control;
+        let { fill } = control;
         ctxHelp.fillStyle = fill;
         rect(control);
     };
@@ -318,13 +345,10 @@ const parseFeed = (feed) => {
             let { x, isResizing, isDragging, width, height } = control;
 
             let mouseX = e.pageX - this.offsetLeft;
-
             // get the current mouse position
             let mx = parseInt(e.clientX - offsetX);
-
             // calculate the distance the mouse has moved since the last mousemove
             let dx = mx - startX;
-
             // move control that isDragging by the distance the mouse has moved since the last mousemove
             if (control.isDragging) {
                 control.x += dx;
@@ -362,6 +386,7 @@ const parseFeed = (feed) => {
 
     function clear() {
         ctxHelp.clearRect(0, 0, canavsHelperSize.width, canavsHelperSize.height);
+        ctx.clearRect(0, 0, canavsSize.width, canavsSize.height);
     }
 
     /*Canvas manipulations*/
@@ -374,9 +399,9 @@ const parseFeed = (feed) => {
 
         /*detect X, Y ratios*/
         Object.values(graphs).forEach(graph => {
-            let {maxY, maxX} = graph;
-            const {height, width} = canavsSize;
-            const {height: hheight, width: hwidth} = canavsHelperSize;
+            let { maxY, maxX } = graph;
+            const { height, width } = canavsSize;
+            const { height: hheight, width: hwidth } = canavsHelperSize;
 
             ratio.y.push(getRatioAtoB(height, maxY, CORRELATION, 3));
             ratio.mY.push(getRatioAtoB(hheight, maxY, CORRELATION, 3));
