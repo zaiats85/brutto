@@ -10,20 +10,29 @@ const buttonSize = {width: "140px", height: "50px"};
 const YINTERVAL = 6;
 const CORRELATION = 0.9;
 
-let controls = document.getElementById("controls");
-let main = document.getElementById("main");
+const controls = document.getElementById("controls");
+const main = document.getElementById("main");
 
-// control chart
-let control = {
-    x: 0,
-    y: 8,
-    width: 350,
-    height: 100,
-    fill: "#142324",
-    type: "rectangle",
-    isDragging: false,
-    isResizing: false
-};
+/* CONTROL */
+const offsetX = 400;
+const offsetY = 8;
+const controlSize = { width: 350, height: 100 };
+const fill = "#142324";
+
+class Control {
+    constructor(offsetX, offsetY, fill, { width, height }){
+        this.x = offsetX;
+        this.y = offsetY;
+        this.width = width;
+        this.height = height;
+        this.fill = fill;
+        this.isDragging = false;
+        this.isResizing = false;
+    };
+}
+
+const control = new Control(offsetX, offsetY, fill, controlSize);
+
 
 /*TRANSPORT*/
 function getJson(method, url) {
@@ -157,8 +166,6 @@ const parseFeed = (feed) => {
         draw();
         end(mainImg);
     };
-
-
 
     //clear feed canvas
     const clearCanvas = () => {
