@@ -122,7 +122,7 @@ const parseFeed = (feed) => {
     /*CANVAS*/
     const mainImg = createCanvas(canavsSize, 'mainImg');
     let ctx = mainImg.getContext("2d");
-        ctx.font = "18px Arial";
+    ctx.font = "18px Arial";
 
     // helper
     let offsetX = mainImg.getBoundingClientRect().left;
@@ -141,8 +141,8 @@ const parseFeed = (feed) => {
         // Form Graphs n Buttons
         Object.entries(names).forEach(([key, value]) => {
 
-            let x = columns.find(col => col.includes("x")).map(getDate);
-            let y = columns.find(col => col.includes(key));
+            let x = columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
+            let y = columns.find(col => col.includes(key)).filter(item => !isNaN(item));
 
             /*@TODO add new Graph() es6 class*/
             graphs[key] = {
@@ -226,10 +226,10 @@ const parseFeed = (feed) => {
         for (let i = 0, k = x.length; i < k; i++) {
             ctx.lineTo(i * rX, y[i] * rY + separate);
 
-            if(i%5 === 1 && separate){
+            if (i % 5 === 1 && separate) {
                 ctx.save();
                 ctx.scale(1, -1);
-                ctx.fillText(getDate(x[i]), i*rX, -(separate-25));
+                ctx.fillText(getDate(x[i]), i * rX, -(separate - 25));
                 ctx.restore();
             }
         }
@@ -401,7 +401,7 @@ const parseFeed = (feed) => {
         /*draw xAxis*/
         for (let j = 0; j < YINTERVAL; j++) {
             // interval height
-            let y = CORRELATION * j * graphHeight  / YINTERVAL;
+            let y = CORRELATION * j * graphHeight / YINTERVAL;
             let val = parseInt(y / Math.min(...ratio.y));
             drawXLine({x: 50, y, val});
         }
