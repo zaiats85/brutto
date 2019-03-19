@@ -16,11 +16,11 @@ const main = document.getElementById("main");
 /* CONTROL */
 const offsetX = 400;
 const offsetY = 8;
-const controlSize = { width: 350, height: 100 };
+const controlSize = {width: 350, height: 100};
 const fill = "#142324";
 
 class Control {
-    constructor(offsetX, offsetY, fill, { width, height }){
+    constructor(offsetX, offsetY, fill, {width, height}) {
         this.x = offsetX;
         this.y = offsetY;
         this.width = width;
@@ -241,20 +241,20 @@ const parseFeed = (feed) => {
     const drawGraph = (input, {rX, rY}) => {
 
         let {color, data: {x, y}} = input;
-        let { x: xpos, width } = control;
+        let {x: xpos, width} = control;
 
         /*start*/
         let start, end;
-        if(xpos <= 0) {
+        if (xpos <= 0) {
             start = 0;
-            end =  xpos+width;
+            end = xpos + width;
         } else {
             start = xpos;
             end = width;
         }
 
-        let fetch1 = (start/canavsHelperSize.width);
-        let fetch2 = (end/canavsHelperSize.width);
+        let fetch1 = (start / canavsHelperSize.width);
+        let fetch2 = (end / canavsHelperSize.width);
 
         /*end*/
 
@@ -277,7 +277,7 @@ const parseFeed = (feed) => {
 
     // create draggable && resizable rectangle
     const drawControl = () => {
-        let { fill } = control;
+        let {fill} = control;
         ctxHelp.fillStyle = fill;
         rect(control);
     };
@@ -296,7 +296,7 @@ const parseFeed = (feed) => {
         e.preventDefault();
         e.stopPropagation();
 
-        let { x, y, width, height } = control;
+        let {x, y, width, height} = control;
 
         // left resizable area
         let leftSide = new Path2D();
@@ -304,26 +304,23 @@ const parseFeed = (feed) => {
         let rightSide = new Path2D();
 
         /*@TODO remove hardcoded values*/
-        leftSide.rect(x, y+500, 40, height);
-        rightSide.rect(x + width, y+500, -40, height);
+        leftSide.rect(x, y + 500, 40, height);
+        rightSide.rect(x + width, y + 500, -40, height);
 
         // current mouse position
         let mx = parseInt(e.clientX - offsetX);
 
-        console.log(ctxHelp.isPointInPath(rightSide, e.clientY, e.clientX));
-        console.log(ctxHelp.isPointInPath(leftSide, e.clientY, e.clientX));
-
-        // 1. right
+        // right
         if (ctxHelp.isPointInPath(rightSide, e.clientX, e.clientY)) {
             dragR = true;
             control.isResizing = true;
         }
-        // 2.left
+        // left
         else if (ctxHelp.isPointInPath(leftSide, e.clientX, e.clientY)) {
             dragL = true;
             control.isResizing = true;
         }
-        // 3. drag
+        // drag
         else if (mx > x && mx < x + width) {
             dragok = true;
             control.isDragging = true;
@@ -352,7 +349,8 @@ const parseFeed = (feed) => {
             e.preventDefault();
             e.stopPropagation();
 
-            let { x, isResizing, isDragging, width, height } = control;
+            let {x, isDragging} = control;
+            let {width, height} = helperImg;
 
             let mouseX = e.pageX - this.offsetLeft;
             // get the current mouse position
@@ -360,16 +358,16 @@ const parseFeed = (feed) => {
             // calculate the distance the mouse has moved since the last mousemove
             let dx = mx - startX;
             // move control that isDragging by the distance the mouse has moved since the last mousemove
-            if (control.isDragging) {
+            if (isDragging) {
                 control.x += dx;
             } else if (dragL) {
-                control.width += control.x - mouseX;
+                control.width += x - mouseX;
                 control.x = mouseX;
             } else if (dragR) {
-                control.width = Math.abs(control.x - mouseX);
+                control.width = Math.abs(x - mouseX);
             }
 
-            ctx.clearRect(0, 0, helperImg.width, helperImg.height);
+            ctx.clearRect(0, 0, width, height);
 
             // redraw the scene
             draw();
@@ -409,9 +407,9 @@ const parseFeed = (feed) => {
 
         /*detect X, Y ratios*/
         Object.values(graphs).forEach(graph => {
-            let { maxY, maxX } = graph;
-            const { height, width } = canavsSize;
-            const { height: hheight, width: hwidth } = canavsHelperSize;
+            let {maxY, maxX} = graph;
+            const {height, width} = canavsSize;
+            const {height: hheight, width: hwidth} = canavsHelperSize;
 
             ratio.y.push(getRatioAtoB(height, maxY, CORRELATION, 3));
             ratio.mY.push(getRatioAtoB(hheight, maxY, CORRELATION, 3));
