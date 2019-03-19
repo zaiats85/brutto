@@ -29,6 +29,7 @@ class Control {
         this.isDragging = false;
         this.isResizing = false;
     };
+
 }
 
 const control = new Control(offsetX, offsetY, fill, controlSize);
@@ -236,7 +237,6 @@ const parseFeed = (feed) => {
     };
 
 
-
     //create single graph
     const drawGraph = (input, {rX, rY}) => {
 
@@ -299,16 +299,19 @@ const parseFeed = (feed) => {
         let { x, y, width, height } = control;
 
         // left resizable area
-        const leftSide = new Path2D();
+        let leftSide = new Path2D();
         // right resizable area
-        const rightSide = new Path2D();
+        let rightSide = new Path2D();
 
         /*@TODO remove hardcoded values*/
-        leftSide.rect(x - 10, y, 40, 300);
-        rightSide.rect(x + width - 20, y, 40, 300);
+        leftSide.rect(x, y+500, 40, height);
+        rightSide.rect(x + width, y+500, -40, height);
 
         // current mouse position
         let mx = parseInt(e.clientX - offsetX);
+
+        console.log(ctxHelp.isPointInPath(rightSide, e.clientY, e.clientX));
+        console.log(ctxHelp.isPointInPath(leftSide, e.clientY, e.clientX));
 
         // 1. right
         if (ctxHelp.isPointInPath(rightSide, e.clientX, e.clientY)) {
@@ -321,7 +324,7 @@ const parseFeed = (feed) => {
             control.isResizing = true;
         }
         // 3. drag
-        else if (mx > control.x && mx < control.x + control.width) {
+        else if (mx > x && mx < x + width) {
             dragok = true;
             control.isDragging = true;
         }
