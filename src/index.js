@@ -14,7 +14,7 @@ const controls = document.getElementById("controls");
 const main = document.getElementById("main");
 
 /* CONTROL */
-const offsetX = 400;
+const offsetX = 850;
 const offsetY = 8;
 const controlSize = {width: 350, height: 100};
 const fill = "#142324";
@@ -29,7 +29,6 @@ class Control {
         this.isDragging = false;
         this.isResizing = false;
     };
-
 }
 
 const control = new Control(offsetX, offsetY, fill, controlSize);
@@ -241,37 +240,19 @@ const parseFeed = (feed) => {
     const drawGraph = (input, {rX, rY}) => {
 
         let {color, data: {x, y}} = input;
-        let {x: xpos, width} = control;
 
-        /*start*/
-        let start, end;
-        if (xpos <= 0) {
-            start = 0;
-            end = xpos + width;
-        } else {
-            start = xpos;
-            end = width;
-        }
-
-        let fetch1 = (start / canavsHelperSize.width);
-        let fetch2 = (end / canavsHelperSize.width);
-
-        /*end*/
-
-        let x0 = Math.round(x.length * fetch1);
-        let x1 = Math.round(x.length * fetch2);
-        let sx = deepClone(x).splice(x0, x1);
-        let sy = deepClone(y).splice(x0, x1);
-
+        /*@TODO separate this logic*/
+        /*CTX*/
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.strokeStyle = color;
         ctx.lineJoin = 'round';
 
         // LINES
-        for (let i = 0, k = sx.length; i < k; i++) {
-            ctx.lineTo(i * 30, sy[i] * rY);
+        for (let i = 0, k = x.length; i < k; i++) {
+            ctx.lineTo(i * rX, y[i] * rY);
         }
+
         ctx.stroke();
     };
 
@@ -326,8 +307,6 @@ const parseFeed = (feed) => {
             control.isDragging = true;
         }
 
-        draw();
-
         // save the current mouse position
         startX = mx;
     }
@@ -350,7 +329,6 @@ const parseFeed = (feed) => {
             e.stopPropagation();
 
             let {x, isDragging} = control;
-            let {width, height} = helperImg;
 
             let mouseX = e.pageX - this.offsetLeft;
             // get the current mouse position
@@ -366,8 +344,6 @@ const parseFeed = (feed) => {
             } else if (dragR) {
                 control.width = Math.abs(x - mouseX);
             }
-
-            ctx.clearRect(0, 0, width, height);
 
             // redraw the scene
             draw();
@@ -402,47 +378,66 @@ const parseFeed = (feed) => {
 
         clear();
 
-        /*reassign each time*/
-        let ratio = {x: 1, y: [], mX: 1, mY: []};
-
-        /*detect X, Y ratios*/
-        Object.values(graphs).forEach(graph => {
-            let {maxY, maxX} = graph;
-            const {height, width} = canavsSize;
-            const {height: hheight, width: hwidth} = canavsHelperSize;
-
-            ratio.y.push(getRatioAtoB(height, maxY, CORRELATION, 3));
-            ratio.mY.push(getRatioAtoB(hheight, maxY, CORRELATION, 3));
-            ratio.x = getRatioAtoB(width, maxX, 1, 3);
-            ratio.mX = getRatioAtoB(hwidth, maxX, 1, 3);
-        });
-
-        /*draw xAxis*/
-        for (let j = 0; j < YINTERVAL; j++) {
-
-            const {height} = canavsSize;
-
-            // interval height
-            let y = CORRELATION * j * height / YINTERVAL;
-
-            let val = parseInt(y / Math.min(...ratio.y));
-            let coords = {x: 50, y, val};
-
-            drawXLine(coords);
-        }
-
         // draw control
         drawControl();
 
+        /*reassign each time*/
+        let ratio = { x: 1, y: [], mX: 1, mY: [] };
+
+        /*detect X, Y ratios*/
         /*draw graphs*/
         Object.values(graphs).forEach(graph => {
+            let {maxY, maxX} = graph;
+            const {height, width} = canavsSize;
+            let {height: hheight, width: hwidth} = canavsHelperSize;
+            let {x: xpos, width: conWidth} = control;
+            let start, end;
+
+            ratio.mY.push(getRatioAtoB(hheight, maxY, CORRELATION, 3));
+            ratio.mX = getRatioAtoB(hwidth, maxX, 1, 3);
+
+            //start
+            if (xpos <= 0) {
+                start = 0;
+                end = xpos + conWidth;
+            } else {
+                start = xpos;
+                end = conWidth;
+            }
+
+            let x0 = Math.round(graph.data.x.length * getRatioAtoB(start, width, 1));
+            let x1 = Math.round(graph.data.x.length * getRatioAtoB(end, width, 1));
+
+            let foo = deepClone(graph);
+
+            foo.data.x = deepClone(graph.data.x).splice(x0, x1);
+            foo.data.y = deepClone(graph.data.y).splice(x0, x1);
+
+            if(dragok){
+                ratio.x = width/foo.data.x.length;
+                console.log(start, end);
+            } else {
+                ratio.x = getRatioAtoB(width, foo.data.x.length, 1, 3);
+            }
+
+            ratio.y.push(getRatioAtoB(height, Math.max(...foo.data.y), CORRELATION, 3));
 
             // draw thumb
             drawHelper(graph, {rX: ratio.mX, rY: Math.min(...ratio.mY)});
 
             // draw graph
-            drawGraph(graph, {rX: ratio.x, rY: Math.min(...ratio.y)});
-        })
+            drawGraph(foo, {rX: ratio.x, rY: Math.min(...ratio.y)});
+        });
+
+        /*draw xAxis*/
+        for (let j = 0; j < YINTERVAL; j++) {
+            const {height} = canavsSize;
+            // interval height
+            let y = CORRELATION * j * height / YINTERVAL;
+            let val = parseInt(y / Math.min(...ratio.y));
+            let coords = {x: 50, y, val};
+            drawXLine(coords);
+        }
 
     };
 
