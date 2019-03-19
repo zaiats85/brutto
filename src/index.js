@@ -4,12 +4,15 @@ import './style.scss';
 const method = "GET";
 const url = "data.json";
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
-const canavsSize = {width: 1200, height: 500};
-const canavsHelperSize = {width: 1200, height: 100};
+const canavsSize = {width: 1200, height: 650};
+const thumbHeight = 100;
+const graphHeight = 500;
 const buttonSize = {width: "140px", height: "50px"};
 const YINTERVAL = 6;
 const CORRELATION = 0.9;
+const SEPARATE = 150;
 
+/*DOM*/
 const controls = document.getElementById("controls");
 const main = document.getElementById("main");
 
@@ -32,7 +35,6 @@ class Control {
 }
 
 const control = new Control(offsetX, offsetY, fill, controlSize);
-
 
 /*TRANSPORT*/
 function getJson(method, url) {
@@ -116,14 +118,11 @@ const parseFeed = (feed) => {
     const {colors, names, types, columns} = feed;
 
     /*CANVAS*/
-    // main
     const mainImg = createCanvas(canavsSize, 'mainImg');
     let ctx = mainImg.getContext("2d");
 
     // helper
-    const helperImg = createCanvas(canavsHelperSize, 'helper');
-    let ctxHelp = helperImg.getContext("2d");
-    let offsetX = helperImg.getBoundingClientRect().left;
+    let offsetX = mainImg.getBoundingClientRect().left;
 
     // listen for mouse events
     let dragok = false;
@@ -131,9 +130,9 @@ const parseFeed = (feed) => {
     let dragR = false;
     let startX;
 
-    helperImg.onmousedown = myDown;
-    helperImg.onmouseup = myUp;
-    helperImg.onmousemove = myMove;
+    mainImg.onmousedown = myDown;
+    mainImg.onmouseup = myUp;
+    mainImg.onmousemove = myMove;
 
     const init = () => {
         // Form Graphs n Buttons
@@ -170,11 +169,7 @@ const parseFeed = (feed) => {
     //clear feed canvas
     const clearCanvas = () => {
         const {width, height} = canavsSize;
-        const {width: hwidth, height: hheight} = canavsHelperSize;
-
-        /*@TODO create single canvas SINGLE and split for thumb and main image*/
         ctx.clearRect(0, 0, width, height);
-        ctxHelp.clearRect(0, 0, hwidth, hheight);
     };
 
     //delete graph from feed canvas
@@ -201,6 +196,7 @@ const parseFeed = (feed) => {
     };
 
     const drawXLine = ({x, y, val}) => {
+        let dY = y + SEPARATE;
         ctx.save();
         ctx.lineWidth = 1;
         ctx.strokeStyle = 'grey';
@@ -208,11 +204,11 @@ const parseFeed = (feed) => {
 
         /*draw xAxis*/
         ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(canavsSize.width - x, y);
+        ctx.moveTo(x, dY);
+        ctx.lineTo(canavsSize.width - x, dY);
 
         ctx.scale(1, -1);
-        ctx.fillText(val, x, -(y + 10));
+        ctx.fillText(val, x, -(dY + 10));
 
         /*draw yAxis*/
         ctx.stroke();
@@ -221,28 +217,21 @@ const parseFeed = (feed) => {
 
     const drawHelper = (input, {rX, rY}) => {
         const {color, data: {x, y}} = input;
-        ctxHelp.lineWidth = 2;
-        ctxHelp.beginPath();
-        ctxHelp.strokeStyle = color;
-        ctxHelp.lineJoin = 'round';
-
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineJoin = 'round';
         // LINES
         for (let i = 0, k = x.length; i < k; i++) {
-            ctxHelp.lineTo(i * rX, y[i] * rY);
+            ctx.lineTo(i * rX, y[i] * rY);
         }
-
-        ctxHelp.stroke();
-
+        ctx.stroke();
     };
 
 
     //create single graph
     const drawGraph = (input, {rX, rY}) => {
-
         let {color, data: {x, y}} = input;
-
-        /*@TODO separate this logic*/
-        /*CTX*/
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.strokeStyle = color;
@@ -250,7 +239,7 @@ const parseFeed = (feed) => {
 
         // LINES
         for (let i = 0, k = x.length; i < k; i++) {
-            ctx.lineTo(i * rX, y[i] * rY);
+            ctx.lineTo(i * rX, y[i] * rY + SEPARATE);
         }
 
         ctx.stroke();
@@ -259,17 +248,16 @@ const parseFeed = (feed) => {
     // create draggable && resizable rectangle
     const drawControl = () => {
         let {fill} = control;
-        ctxHelp.fillStyle = fill;
+        ctx.fillStyle = fill;
         rect(control);
     };
 
-    /*start*/
     // draw a  rect
     const rect = ({x, y, width, height}) => {
-        ctxHelp.beginPath();
-        ctxHelp.rect(x, y, width, height);
-        ctxHelp.closePath();
-        ctxHelp.fill();
+        ctx.beginPath();
+        ctx.rect(x, y, width, height);
+        ctx.closePath();
+        ctx.fill();
     };
 
     // handle mousedown events
@@ -292,12 +280,12 @@ const parseFeed = (feed) => {
         let mx = parseInt(e.clientX - offsetX);
 
         // right
-        if (ctxHelp.isPointInPath(rightSide, e.clientX, e.clientY)) {
+        if (ctx.isPointInPath(rightSide, e.clientX, e.clientY)) {
             dragR = true;
             control.isResizing = true;
         }
         // left
-        else if (ctxHelp.isPointInPath(leftSide, e.clientX, e.clientY)) {
+        else if (ctx.isPointInPath(leftSide, e.clientX, e.clientY)) {
             dragL = true;
             control.isResizing = true;
         }
@@ -369,7 +357,6 @@ const parseFeed = (feed) => {
     };
 
     function clear() {
-        ctxHelp.clearRect(0, 0, canavsHelperSize.width, canavsHelperSize.height);
         ctx.clearRect(0, 0, canavsSize.width, canavsSize.height);
     }
 
@@ -382,19 +369,18 @@ const parseFeed = (feed) => {
         drawControl();
 
         /*reassign each time*/
-        let ratio = { x: 1, y: [], mX: 1, mY: [] };
+        let ratio = {x: 1, y: [], mX: 1, mY: []};
 
         /*detect X, Y ratios*/
         /*draw graphs*/
         Object.values(graphs).forEach(graph => {
+            const {width} = canavsSize;
             let {maxY, maxX} = graph;
-            const {height, width} = canavsSize;
-            let {height: hheight, width: hwidth} = canavsHelperSize;
             let {x: xpos, width: conWidth} = control;
             let start, end;
 
-            ratio.mY.push(getRatioAtoB(hheight, maxY, CORRELATION, 3));
-            ratio.mX = getRatioAtoB(hwidth, maxX, 1, 3);
+            ratio.mY.push(getRatioAtoB(thumbHeight, maxY, CORRELATION, 3));
+            ratio.mX = getRatioAtoB(width, maxX, 1, 3);
 
             //start
             if (xpos <= 0) {
@@ -413,14 +399,8 @@ const parseFeed = (feed) => {
             foo.data.x = deepClone(graph.data.x).splice(x0, x1);
             foo.data.y = deepClone(graph.data.y).splice(x0, x1);
 
-            if(dragok){
-                ratio.x = width/foo.data.x.length;
-                console.log(start, end);
-            } else {
-                ratio.x = getRatioAtoB(width, foo.data.x.length, 1, 3);
-            }
-
-            ratio.y.push(getRatioAtoB(height, Math.max(...foo.data.y), CORRELATION, 3));
+            ratio.x = getRatioAtoB(width, foo.data.x.length, 1, 3);
+            ratio.y.push(getRatioAtoB(graphHeight, Math.max(...foo.data.y), CORRELATION, 3));
 
             // draw thumb
             drawHelper(graph, {rX: ratio.mX, rY: Math.min(...ratio.mY)});
@@ -432,8 +412,9 @@ const parseFeed = (feed) => {
         /*draw xAxis*/
         for (let j = 0; j < YINTERVAL; j++) {
             const {height} = canavsSize;
+
             // interval height
-            let y = CORRELATION * j * height / YINTERVAL;
+            let y = CORRELATION * j * graphHeight  / YINTERVAL;
             let val = parseInt(y / Math.min(...ratio.y));
             let coords = {x: 50, y, val};
             drawXLine(coords);
@@ -444,7 +425,6 @@ const parseFeed = (feed) => {
     /*DOM manipulations*/
     const end = (mainImg) => {
         main.appendChild(mainImg);
-        main.appendChild(helperImg);
         Object.values(buttons).forEach(drawButton);
     };
 
