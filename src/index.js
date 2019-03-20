@@ -242,25 +242,30 @@ const parseFeed = (feed) => {
 
 
 
-    const drawXLine = ({x, y, val}) => {
-        let dY = y + SEPARATE;
+    const drawXLine = () => {
         ctx.lineWidth = 1;
         ctx.strokeStyle = 'grey';
         ctx.fillStyle = 'grey';
-
-        ctx.save();
-
+        let gr = Math.min(...ratio.rY);
         /*draw xAxis*/
-        ctx.beginPath();
-        ctx.moveTo(x, dY);
+        for (let j = 0; j < YINTERVAL; j++) {
+            ctx.save();
+            let y = CORRELATION * j * graphHeight / YINTERVAL;
+            let val = parseInt(y / gr).toString();
+            let dY = y + SEPARATE;
 
-        ctx.lineTo(width - x, dY);
-        ctx.scale(1, -1);
+            /*draw xAxis*/
+            ctx.beginPath();
+            ctx.moveTo(AXISOffsetX, dY);
 
-        ctx.fillText(val, x, -(dY + 10));
+            ctx.lineTo(width - AXISOffsetX, dY);
+            ctx.scale(1, -1);
 
-        ctx.stroke();
-        ctx.restore();
+            ctx.fillText(val, AXISOffsetX, -(dY + 10));
+            ctx.stroke();
+            ctx.restore();
+        }
+
     };
 
     const drawAxis = (text, {x, y}) => {
@@ -402,7 +407,6 @@ const parseFeed = (feed) => {
 
         ratio.tY = getRatioAtoB(thumbHeight, Math.max(...maxY), CORRELATION, PRECISION);
         ratio.tX = getRatioAtoB(width, x.length, 1, PRECISION);
-
         ratio.rY = [];
         let {tY, tX} = ratio;
 
@@ -437,6 +441,7 @@ const parseFeed = (feed) => {
             drawGraph(tmp, ratio.rX, Math.min(...ratio.rY), newX, SEPARATE);
         });
 
+        drawXLine();
 
     };
 
