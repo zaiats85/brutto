@@ -379,7 +379,7 @@ const parseFeed = (feed) => {
         // draw control
         drawControl();
 
-        /*reassign each time*/
+        // reassign each time
         let {x: xpos, width: conWidth} = control;
         let {charts, maxY, x} = graphs;
 
@@ -388,7 +388,7 @@ const parseFeed = (feed) => {
         ratio.rY = getRatioAtoB(graphHeight, Math.max(...maxY), CORRELATION, PRECISION);
         let {tY, tX} = ratio;
 
-        console.log(ratio)
+        // draw main canvas
         Object.values(charts).forEach(chart => {
             let {color, name, type, y} = chart;
 
