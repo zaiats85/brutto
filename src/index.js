@@ -128,7 +128,7 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[0])
+        parseFeed(result[4])
     });
 
 const parseFeed = (feed) => {
@@ -240,13 +240,11 @@ const parseFeed = (feed) => {
 
     };
 
-
-
     const drawXLine = () => {
         ctx.lineWidth = 1;
         ctx.strokeStyle = 'grey';
         ctx.fillStyle = 'grey';
-        let gr = Math.min(...ratio.rY);
+        let gr = ratio.rY;
         /*draw xAxis*/
         for (let j = 0; j < YINTERVAL; j++) {
             ctx.save();
@@ -408,15 +406,16 @@ const parseFeed = (feed) => {
         ratio.tY = getRatioAtoB(thumbHeight, Math.max(...maxY), CORRELATION, PRECISION);
         ratio.tX = getRatioAtoB(width, x.length, 1, PRECISION);
         ratio.rY = [];
+
         let {tY, tX} = ratio;
+        let thumbs = {};
 
         // draw main canvas
         Object.values(charts).forEach(chart => {
+
             let {color, name, type, y} = chart;
 
-            // draw thumb
             drawGraph(chart, tX, tY, x);
-
             let start, end;
             if (xpos <= 0) {
                 start = 0;
@@ -430,15 +429,18 @@ const parseFeed = (feed) => {
             let x0 = Math.round(x.length * getRatioAtoB(start, width, 1));
 
             let newY = deepClone(y).splice(x0, x1);
-            let newX = deepClone(x).splice(x0, x1);
+            graphs.newX = deepClone(x).splice(x0, x1);
+            let maxNewY = Math.max(...newY);
+            thumbs[name] = new Chart(color, name, type, newY, maxNewY);
+            ratio.rY.push(getRatioAtoB(graphHeight, maxNewY, CORRELATION, PRECISION));
+        });
 
-            let tmp = new Chart(color, name, type, newY, Math.max(...newY));
+        ratio.rX = getRatioAtoB(width, graphs.newX.length, 1, PRECISION);
+        ratio.rY = Math.min(...ratio.rY);
 
-            ratio.rX = getRatioAtoB(width, newX.length, 1, PRECISION);
-            ratio.rY.push(getRatioAtoB(graphHeight, tmp.max, CORRELATION, PRECISION));
-
+        Object.values(thumbs).forEach(thumb => {
             // draw chart
-            drawGraph(tmp, ratio.rX, Math.min(...ratio.rY), newX, SEPARATE);
+            drawGraph(thumb, ratio.rX, ratio.rY, graphs.newX, SEPARATE);
         });
 
         drawXLine();
