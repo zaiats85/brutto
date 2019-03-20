@@ -120,12 +120,9 @@ const parseFeed = (feed) => {
     const {width, height} = canavsSize;
 
     /*CANVAS*/
-    const mainImg = createCanvas(canavsSize, 'mainImg');
-    let ctx = mainImg.getContext("2d");
+    const canvas = createCanvas(canavsSize, 'mainImg');
+    let ctx = canvas.getContext("2d");
     ctx.font = "18px Arial";
-
-    // helper
-    let offsetX = mainImg.getBoundingClientRect().left;
 
     // listen for mouse events
     let dragok = false;
@@ -133,9 +130,9 @@ const parseFeed = (feed) => {
     let dragR = false;
     let startX;
 
-    mainImg.onmousedown = myDown;
-    mainImg.onmouseup = myUp;
-    mainImg.onmousemove = myMove;
+    canvas.onmousedown = myDown;
+    canvas.onmouseup = myUp;
+    canvas.onmousemove = myMove;
 
     const init = () => {
         // Form Graphs n Buttons
@@ -162,17 +159,17 @@ const parseFeed = (feed) => {
             };
         });
 
-        //interesting approach to manipulate scene redraw, at least for me
+        // interesting approach to manipulate scene redraw, at least for me
         cachedGraph = deepClone(graphs);
 
         draw();
-        end(mainImg);
+        end(canvas);
     };
 
-    //clear feed canvas
+    // clear feed canvas
     const clearCanvas = ({width, height}) => ctx.clearRect(0, 0, width, height);
 
-    //delete graph from feed canvas
+    // delete graph from feed canvas
     const toggleGraph = (evt) => {
         //clear the feed canvas
         clearCanvas(canavsSize);
@@ -214,7 +211,7 @@ const parseFeed = (feed) => {
         ctx.restore();
     };
 
-    //create single graph
+    // create single graph
     const drawGraph = (input, {rX, rY}, separate = 0) => {
         let {color, data: {x, y}, lineWidth} = input;
         ctx.lineWidth = lineWidth;
@@ -252,6 +249,15 @@ const parseFeed = (feed) => {
         ctx.fill();
     };
 
+    // get Mouse Position
+    const getMousePos = (evt) => {
+        let rect = canvas.getBoundingClientRect();
+        return {
+            x: evt.clientX - rect.left,
+            y: evt.clientY - rect.top
+        };
+    };
+
     // handle mousedown events
     function myDown(e) {
         e.preventDefault();
@@ -259,17 +265,16 @@ const parseFeed = (feed) => {
 
         let {x, y, width, height} = control;
 
-        // left resizable area
+        // left n right resizable areas
         let leftSide = new Path2D();
-        // right resizable area
         let rightSide = new Path2D();
 
         /*@TODO remove hardcoded values*/
         leftSide.rect(x, y + 500, 40, height);
         rightSide.rect(x + width, y + 500, -40, height);
 
-        // current mouse position
-        let mx = parseInt(e.clientX - offsetX);
+        // current mouse position X
+        let {x: mx} = getMousePos(e);
 
         // right
         if (ctx.isPointInPath(rightSide, e.clientX, e.clientY)) {
@@ -309,20 +314,20 @@ const parseFeed = (feed) => {
             e.stopPropagation();
 
             let {x, isDragging} = control;
+            // current mouse position X
+            let {x: mx} = getMousePos(e);
 
-            let mouseX = e.pageX - this.offsetLeft;
-            // get the current mouse position
-            let mx = parseInt(e.clientX - offsetX);
             // calculate the distance the mouse has moved since the last mousemove
             let dx = mx - startX;
+
             // move control that isDragging by the distance the mouse has moved since the last mousemove
             if (isDragging) {
                 control.x += dx;
             } else if (dragL) {
-                control.width += x - mouseX;
-                control.x = mouseX;
+                control.width += x - mx;
+                control.x = mx;
             } else if (dragR) {
-                control.width = Math.abs(x - mouseX);
+                control.width = Math.abs(x - mx);
             }
 
             // redraw the scene
@@ -333,7 +338,6 @@ const parseFeed = (feed) => {
         }
     }
 
-    /*end*/
     const drawButton = ({id, color, label, size: {width, height}}) => {
         let button = document.createElement('button');
         button.id = id;
@@ -408,8 +412,8 @@ const parseFeed = (feed) => {
     };
 
     /*DOM manipulations*/
-    const end = (mainImg) => {
-        main.appendChild(mainImg);
+    const end = (canvas) => {
+        main.appendChild(canvas);
         Object.values(buttons).forEach(drawButton);
     };
 
