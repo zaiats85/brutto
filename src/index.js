@@ -55,7 +55,25 @@ class Control {
     };
 }
 
-const control = new Control();
+/*CHART*/
+class Chart {
+    constructor(color, name, type, y) {
+        this.y = y;
+        this.color = color;
+        this.name = name;
+        this.type = type;
+    };
+}
+
+/*BUTTON*/
+class Button {
+    constructor(color, id, label, size) {
+        this.color = color;
+        this.id = id;
+        this.label = label;
+        this.size = size;
+    };
+}
 
 /* UTILS */
 const max = arr => {
@@ -108,11 +126,17 @@ init()
     });
 
 const parseFeed = (feed) => {
-    let graphs = {};
+    let graphs = {
+        x: [],
+        charts: {},
+        maxY: []
+    };
+    let ratio = {};
+    const control = new Control();
     let cachedGraph = {};
     let buttons = {};
     const {colors, names, types, columns} = feed;
-    const {width, height} = canavsSize;
+    const {width} = canavsSize;
     let {fill} = control;
 
     /*CANVAS*/
@@ -132,27 +156,19 @@ const parseFeed = (feed) => {
 
     const init = () => {
         // Form Graphs n Buttons
-        Object.entries(names).forEach(([key, value]) => {
 
-            let x = columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
+        /*X is the same for each graph*/
+        graphs.x = columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
+
+        Object.entries(names).forEach(([key, value]) => {
+            // remove first index string type
             let y = columns.find(col => col.includes(key)).filter(item => !isNaN(item));
 
-            /*@TODO add new Graph() es6 class*/
-            graphs[key] = {
-                color: colors[key],
-                name: names[key],
-                type: types[key],
-                data: {x, y},
-                maxY: max(y),
-                maxX: x.length
-            };
-            /*@TODO add new Button() es6 class*/
-            buttons[key] = {
-                color: colors[key],
-                id: key,
-                label: value,
-                size: buttonSize
-            };
+            // create charts n buttons
+            graphs.charts[key] = new Chart(colors[key], names[key], types[key], y);
+            buttons[key] = new Button(colors[key], key, value, buttonSize);
+
+            graphs.maxY.push(Math.max(...y));
         });
 
         // interesting approach to manipulate scene redraw, at least for me
@@ -207,9 +223,10 @@ const parseFeed = (feed) => {
     };
 
     // create single graph
-    const drawGraph = (input, {rX, rY}, separate = 0) => {
-        let {color, data: {x, y}, lineWidth} = input;
-        ctx.lineWidth = lineWidth;
+    const drawGraph = (input, {rX, rY}, x, separate = 0) => {
+        let {color, y} = input;
+
+        ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.strokeStyle = color;
         ctx.lineJoin = 'round';
@@ -349,20 +366,29 @@ const parseFeed = (feed) => {
     /*Canvas manipulations*/
     const draw = () => {
 
+
         clearCanvas(canavsSize);
 
         // draw control
         drawControl();
 
         /*reassign each time*/
-        let ratio = {x: 1, y: [], mX: 1, mY: []};
         let {x: xpos, width: conWidth} = control;
+        let {charts, maxY, x} = graphs;
 
-        /*detect X, Y ratios*/
-        /*draw graphs*/
-        Object.values(graphs).forEach(graph => {
-            let {maxY, maxX, data: {x, y}} = graph;
-            let tmp = deepClone(graph);
+        ratio.rY = getRatioAtoB(graphHeight, Math.max(...maxY), CORRELATION, PRECISION);
+        ratio.rX = getRatioAtoB(width, x.length, 1, PRECISION);
+
+        Object.values(charts).forEach(chart => {
+            // draw chart
+            drawGraph(chart, ratio, x);
+
+            let rXt, rYt;
+
+            // draw thumb
+            drawGraph(chart, {rXt, rYt}, x, SEPARATE);
+
+            /*let tmp = deepClone(graph);
             let start, end;
 
             ratio.mY.push(getRatioAtoB(thumbHeight, maxY, CORRELATION, PRECISION));
@@ -377,7 +403,7 @@ const parseFeed = (feed) => {
                 end = conWidth;
             }
 
-            /*@TODO refactor this awfull code*/
+            /!*@TODO refactor this awfull code*!/
             let x1 = Math.round(maxX * getRatioAtoB(end, width, 1));
             let x0 = Math.round(maxX * getRatioAtoB(start, width, 1));
 
@@ -386,21 +412,17 @@ const parseFeed = (feed) => {
             tmp.lineWidth = 3;
             graph.lineWidth = 2;
 
-            ratio.x = getRatioAtoB(width, tmp.data.x.length, 1, PRECISION);
-
-            ratio.y.push(getRatioAtoB(graphHeight, max(tmp.data.y), CORRELATION, PRECISION));
-
             // draw thumb
             drawGraph(graph, {rX: ratio.mX, rY: Math.min(...ratio.mY)});
 
             // draw graph
-            drawGraph(tmp, {rX: ratio.x, rY: Math.min(...ratio.y)}, SEPARATE);
+            drawGraph(tmp, {rX: ratio.x, rY: Math.min(...ratio.y)}, SEPARATE);*/
         });
 
         /*draw xAxis*/
         for (let j = 0; j < YINTERVAL; j++) {
             let y = CORRELATION * j * graphHeight / YINTERVAL;
-            let val = parseInt(y / Math.min(...ratio.y));
+            let val = parseInt(y / ratio.rY);
             drawXLine({x: 50, y, val});
         }
 
