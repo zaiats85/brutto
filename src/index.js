@@ -438,9 +438,18 @@ const parseFeed = (feed) => {
             drawGraph(tmp, ratio.rX, Math.min(...ratio.rY), newX, SEPARATE);
         });
 
+        /*draw xAxis*/
+        for (let j = 0; j < YINTERVAL; j++) {
+            let y = CORRELATION * j * graphHeight / YINTERVAL;
+            let val = parseInt(y / Math.min(...ratio.y));
+            drawXLine({x: 50, y, val});
+        }
+
 
 
     };
+
+
 
     /*DOM manipulations*/
     const end = (canvas) => {
