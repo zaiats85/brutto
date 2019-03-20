@@ -13,30 +13,6 @@ const CORRELATION = 0.9;
 const PRECISION = 3;
 const SEPARATE = 150;
 
-/*DOM*/
-const controls = document.getElementById("controls");
-const main = document.getElementById("main");
-
-/* CONTROL */
-const offsetX = 850;
-const offsetY = 8;
-const controlSize = {width: 350, height: 100};
-const fill = "#142324";
-
-class Control {
-    constructor(offsetX, offsetY, fill, {width, height}) {
-        this.x = offsetX;
-        this.y = offsetY;
-        this.width = width;
-        this.height = height;
-        this.fill = fill;
-        this.isDragging = false;
-        this.isResizing = false;
-    };
-}
-
-const control = new Control(offsetX, offsetY, fill, controlSize);
-
 /*TRANSPORT*/
 function getJson(method, url) {
     return new Promise(function (resolve, reject) {
@@ -61,6 +37,25 @@ function getJson(method, url) {
         xhr.send();
     })
 }
+
+/*DOM*/
+const controls = document.getElementById("controls");
+const main = document.getElementById("main");
+
+/* CONTROL */
+class Control {
+    constructor() {
+        this.x = 850;
+        this.y = 8;
+        this.width = 350;
+        this.height = 100;
+        this.fill = "#d4f2f0";
+        this.isDragging = false;
+        this.isResizing = false;
+    };
+}
+
+const control = new Control();
 
 /* UTILS */
 const max = arr => {
@@ -252,9 +247,11 @@ const parseFeed = (feed) => {
     // get Mouse Position
     const getMousePos = (evt) => {
         let rect = canvas.getBoundingClientRect();
+        console.log(rect);
         return {
             x: evt.clientX - rect.left,
-            y: evt.clientY - rect.top
+            y: evt.clientY - rect.top,
+            ySc: rect.bottom - evt.clientY
         };
     };
 
@@ -269,20 +266,21 @@ const parseFeed = (feed) => {
         let leftSide = new Path2D();
         let rightSide = new Path2D();
 
-        /*@TODO remove hardcoded values*/
-        leftSide.rect(x, y + 500, 40, height);
-        rightSide.rect(x + width, y + 500, -40, height);
+        // current mouse position X, yScaled(1, -1);
+        let {x: mx, ySc: mySc} = getMousePos(e);
 
-        // current mouse position X
-        let {x: mx} = getMousePos(e);
+        // start
+        /*@TODO remove hardcoded values*/
+        leftSide.rect(x, y, 10, height);
+        rightSide.rect(width + x - 10, y, 10, height);
 
         // right
-        if (ctx.isPointInPath(rightSide, e.clientX, e.clientY)) {
+        if (ctx.isPointInPath(rightSide, mx, mySc)) {
             dragR = true;
             control.isResizing = true;
         }
         // left
-        else if (ctx.isPointInPath(leftSide, e.clientX, e.clientY)) {
+        else if (ctx.isPointInPath(leftSide, mx, mySc)) {
             dragL = true;
             control.isResizing = true;
         }
