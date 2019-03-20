@@ -9,7 +9,8 @@ const thumbHeight = 100;
 const graphHeight = 500;
 const buttonSize = {width: "140px", height: "50px"};
 const YINTERVAL = 6;
-const AXISOffset = 40;
+const AXISOffsetX = 40;
+const AXISOffsetY = 40;
 const CORRELATION = 0.9;
 const PRECISION = 3;
 const SEPARATE = 150;
@@ -246,22 +247,25 @@ const parseFeed = (feed) => {
 
 
             if (i % Math.round(k/YINTERVAL) === 1 && separate) {
-                ctx.save();
-                ctx.scale(1, -1);
-                ctx.fillStyle = "grey";
-                /*X AXIS*/
-                ctx.fillText(getDate(x[i]), i * rX, -(separate - 25));
-                ctx.restore();
-
-                /*Y AXIS*/
-                let y = parseInt((i/k) * CORRELATION);
-
+                let pos = {x: i * rX, y: -(separate - AXISOffsetY)}
+                drawYaxis("grey", getDate(x[i]), pos );
             }
 
         }
 
         ctx.stroke();
     };
+
+    const drawYaxis = (fill, text, {x, y}) => {
+
+        ctx.save();
+        ctx.scale(1, -1);
+        ctx.fillStyle = fill;
+
+        /*X AXIS*/
+        ctx.fillText(text, x, y);
+        ctx.restore();
+    }
 
     // create draggable && resizable rectangle
     const drawControl = () => {
@@ -432,12 +436,9 @@ const parseFeed = (feed) => {
         for (let j = 0; j < YINTERVAL; j++) {
             let y = CORRELATION * j * graphHeight / YINTERVAL;
             let val = parseInt(y / Math.min(...ratio.rY));
-            drawXLine({x: AXISOffset, y, val});
+            drawXLine({x: AXISOffsetX, y, val});
         }
-
     };
-
-
 
     /*DOM manipulations*/
     const end = (canvas) => {
