@@ -113,6 +113,7 @@ const parseFeed = (feed) => {
     let buttons = {};
     const {colors, names, types, columns} = feed;
     const {width, height} = canavsSize;
+    let {fill} = control;
 
     /*CANVAS*/
     const canvas = createCanvas(canavsSize, 'mainImg');
@@ -166,8 +167,7 @@ const parseFeed = (feed) => {
 
     // delete graph from feed canvas
     const toggleGraph = (evt) => {
-        //clear the feed canvas
-        clearCanvas(canavsSize);
+
         const key = evt.target.id;
         const tmp = cachedGraph[key];
 
@@ -231,7 +231,6 @@ const parseFeed = (feed) => {
 
     // create draggable && resizable rectangle
     const drawControl = () => {
-        let {fill} = control;
         ctx.fillStyle = fill;
         rect(control);
     };
@@ -247,7 +246,6 @@ const parseFeed = (feed) => {
     // get Mouse Position
     const getMousePos = (evt) => {
         let rect = canvas.getBoundingClientRect();
-        console.log(rect);
         return {
             x: evt.clientX - rect.left,
             y: evt.clientY - rect.top,
@@ -261,7 +259,6 @@ const parseFeed = (feed) => {
         e.stopPropagation();
 
         let {x, y, width, height} = control;
-
         // left n right resizable areas
         let leftSide = new Path2D();
         let rightSide = new Path2D();
