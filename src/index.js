@@ -211,25 +211,6 @@ const parseFeed = (feed) => {
         draw()
     };
 
-    const drawXLine = ({x, y, val}) => {
-        let dY = y + SEPARATE;
-        let {width} = canavsSize;
-        ctx.save();
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'grey';
-
-        /*draw xAxis*/
-        ctx.beginPath();
-        ctx.moveTo(x, dY);
-        ctx.lineTo(width - x, dY);
-
-        ctx.scale(1, -1);
-        ctx.fillText(val, x, -(dY + 10));
-
-        ctx.stroke();
-        ctx.restore();
-    };
-
     // create single graph
     const drawGraph = (input, rX, rY, x, separate = 0) => {
         let {color, y} = input;
@@ -247,10 +228,45 @@ const parseFeed = (feed) => {
             if (i % Math.round(k/YINTERVAL) === 1 && separate) {
                 ctx.save();
                 ctx.scale(1, -1);
+                ctx.fillStyle = "grey";
                 ctx.fillText(getDate(x[i]), i * rX, -(separate - 25));
                 ctx.restore();
             }
+
             /*Y AXIS*/
+            if (i % Math.round(k/YINTERVAL) === 1 && separate) {
+
+                console.log(Math.round(k/YINTERVAL));
+
+                let offset = 40;
+                let y = CORRELATION * i * graphHeight / YINTERVAL;
+
+                ctx.save();
+                ctx.scale(1, -1);
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'grey';
+
+                ctx.beginPath();
+                ctx.moveTo(offset, SEPARATE);
+                ctx.lineTo(width - x, SEPARATE);
+
+                ctx.fillText(32, x, -(132 + 10));
+                ctx.stroke();
+                ctx.restore();
+
+
+                /*let val = parseInt(y / rY);
+                let dY = y + SEPARATE;
+
+                ctx.beginPath();
+                ctx.moveTo(offset, dY);
+
+                ctx.lineTo(width - x, dY);
+
+                ctx.scale(1, -1);
+                ctx.fillText(val, x, -(dY + 10));
+                */
+            }
         }
 
         ctx.stroke();
@@ -422,12 +438,7 @@ const parseFeed = (feed) => {
             drawGraph(tmp, ratio.rX, Math.min(...ratio.rY), newX, SEPARATE);
         });
 
-        /*draw xAxis*/
-        for (let j = 0; j < YINTERVAL; j++) {
-            let y = CORRELATION * j * graphHeight / YINTERVAL;
-            let val = parseInt(y / Math.min(...ratio.rY));
-            drawXLine({x: 40, y, val});
-        }
+
 
     };
 
