@@ -243,13 +243,14 @@ const parseFeed = (feed) => {
         for (let i = 0, k = x.length; i < k; i++) {
             ctx.lineTo(i * rX, y[i] * rY + separate);
 
+            /*X AXIS*/
             if (i % Math.round(k/YINTERVAL) === 1 && separate) {
-
                 ctx.save();
                 ctx.scale(1, -1);
                 ctx.fillText(getDate(x[i]), i * rX, -(separate - 25));
                 ctx.restore();
             }
+            /*Y AXIS*/
         }
 
         ctx.stroke();
