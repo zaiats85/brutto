@@ -243,7 +243,8 @@ const parseFeed = (feed) => {
         for (let i = 0, k = x.length; i < k; i++) {
             ctx.lineTo(i * rX, y[i] * rY + separate);
 
-            if (i % 5 === 1 && separate) {
+            if (i % Math.round(k/YINTERVAL) === 1 && separate) {
+
                 ctx.save();
                 ctx.scale(1, -1);
                 ctx.fillText(getDate(x[i]), i * rX, -(separate - 25));
@@ -385,7 +386,8 @@ const parseFeed = (feed) => {
 
         ratio.tY = getRatioAtoB(thumbHeight, Math.max(...maxY), CORRELATION, PRECISION);
         ratio.tX = getRatioAtoB(width, x.length, 1, PRECISION);
-        ratio.rY = getRatioAtoB(graphHeight, Math.max(...maxY), CORRELATION, PRECISION);
+
+        ratio.rY = [];
         let {tY, tX} = ratio;
 
         // draw main canvas
@@ -410,19 +412,20 @@ const parseFeed = (feed) => {
             let newY = deepClone(y).splice(x0, x1);
             let newX = deepClone(x).splice(x0, x1);
 
-            let tmp = new Chart(color, name, type, newY);
+            let tmp = new Chart(color, name, type, newY, Math.max(...newY));
 
             ratio.rX = getRatioAtoB(width, newX.length, 1, PRECISION);
+            ratio.rY.push(getRatioAtoB(graphHeight, tmp.max, CORRELATION, PRECISION));
 
             // draw chart
-            drawGraph(tmp, ratio.rX, ratio.rY, newX, SEPARATE);
+            drawGraph(tmp, ratio.rX, Math.min(...ratio.rY), newX, SEPARATE);
         });
 
         /*draw xAxis*/
         for (let j = 0; j < YINTERVAL; j++) {
             let y = CORRELATION * j * graphHeight / YINTERVAL;
-            let val = parseInt(y / ratio.rY);
-            drawXLine({x: 50, y, val});
+            let val = parseInt(y / Math.min(...ratio.rY));
+            drawXLine({x: 40, y, val});
         }
 
     };
