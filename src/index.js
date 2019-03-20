@@ -188,25 +188,6 @@ const parseFeed = (feed) => {
     // clear feed canvas
     const clearCanvas = ({width, height}) => ctx.clearRect(0, 0, width, height);
 
-    const drawXLine = ({x, y, val}) => {
-        let dY = y + SEPARATE;
-        ctx.save();
-        ctx.lineWidth = 1;
-        /*draw xAxis*/
-        ctx.beginPath();
-
-        ctx.moveTo(x, dY);
-        ctx.strokeStyle = 'grey';
-        ctx.lineTo(width - x, dY);
-
-        ctx.scale(1, -1);
-        ctx.fillStyle = 'grey';
-        ctx.fillText(val, x, -(dY + 10));
-
-        ctx.stroke();
-        ctx.restore();
-    };
-
     // delete graph from feed canvas
     const toggleGraph = (evt) => {
 
@@ -245,27 +226,50 @@ const parseFeed = (feed) => {
         for (let i = 0, k = x.length; i < k; i++) {
             ctx.lineTo(i * rX, y[i] * rY + separate);
 
+            if (i % Math.round(k/YINTERVAL) === 0 && separate) {
 
-            if (i % Math.round(k/YINTERVAL) === 1 && separate) {
-                let pos = {x: i * rX, y: -(separate - AXISOffsetY)}
-                drawYaxis("grey", getDate(x[i]), pos );
+                let pos = {x: i * rX, y: -(separate - AXISOffsetY)};
+                drawAxis(getDate(x[i]), pos );
+
             }
 
         }
 
         ctx.stroke();
+
+
     };
 
-    const drawYaxis = (fill, text, {x, y}) => {
+
+
+    const drawXLine = ({x, y, val}) => {
+        let dY = y + SEPARATE;
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'grey';
+        ctx.fillStyle = 'grey';
 
         ctx.save();
-        ctx.scale(1, -1);
-        ctx.fillStyle = fill;
 
-        /*X AXIS*/
+        /*draw xAxis*/
+        ctx.beginPath();
+        ctx.moveTo(x, dY);
+
+        ctx.lineTo(width - x, dY);
+        ctx.scale(1, -1);
+
+        ctx.fillText(val, x, -(dY + 10));
+
+        ctx.stroke();
+        ctx.restore();
+    };
+
+    const drawAxis = (text, {x, y}) => {
+        ctx.save();
+        ctx.scale(1, -1);
+        ctx.fillStyle = "grey";
         ctx.fillText(text, x, y);
         ctx.restore();
-    }
+    };
 
     // create draggable && resizable rectangle
     const drawControl = () => {
@@ -433,11 +437,7 @@ const parseFeed = (feed) => {
             drawGraph(tmp, ratio.rX, Math.min(...ratio.rY), newX, SEPARATE);
         });
 
-        for (let j = 0; j < YINTERVAL; j++) {
-            let y = CORRELATION * j * graphHeight / YINTERVAL;
-            let val = parseInt(y / Math.min(...ratio.rY));
-            drawXLine({x: AXISOffsetX, y, val});
-        }
+
     };
 
     /*DOM manipulations*/
