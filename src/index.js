@@ -363,6 +363,7 @@ const parseFeed = (feed) => {
         /*draw graphs*/
         Object.values(graphs).forEach(graph => {
             let {maxY, maxX, data: {x, y}} = graph;
+            let tmp = deepClone(graph);
             let start, end;
 
             ratio.mY.push(getRatioAtoB(thumbHeight, maxY, CORRELATION, PRECISION));
@@ -378,29 +379,27 @@ const parseFeed = (feed) => {
             }
 
             /*@TODO refactor this awfull code*/
-            let x0 = Math.round(x.length * getRatioAtoB(start, width, 1));
-            let x1 = Math.round(x.length * getRatioAtoB(end, width, 1));
+            let x1 = Math.round(maxX * getRatioAtoB(end, width, 1));
+            let x0 = Math.round(maxX * getRatioAtoB(start, width, 1));
 
-            let foo = deepClone(graph);
-            foo.data.x = deepClone(x).splice(x0, x1);
-            foo.data.y = deepClone(y).splice(x0, x1);
-            foo.lineWidth = 3;
+            tmp.data.x = deepClone(x).splice(x0, x1);
+            tmp.data.y = deepClone(y).splice(x0, x1);
+            tmp.lineWidth = 3;
             graph.lineWidth = 2;
 
-            ratio.x = getRatioAtoB(width, foo.data.x.length, 1, PRECISION);
+            ratio.x = getRatioAtoB(width, tmp.data.x.length, 1, PRECISION);
 
-            ratio.y.push(getRatioAtoB(graphHeight, max(foo.data.y), CORRELATION, PRECISION));
+            ratio.y.push(getRatioAtoB(graphHeight, max(tmp.data.y), CORRELATION, PRECISION));
 
             // draw thumb
             drawGraph(graph, {rX: ratio.mX, rY: Math.min(...ratio.mY)});
 
             // draw graph
-            drawGraph(foo, {rX: ratio.x, rY: Math.min(...ratio.y)}, SEPARATE);
+            drawGraph(tmp, {rX: ratio.x, rY: Math.min(...ratio.y)}, SEPARATE);
         });
 
         /*draw xAxis*/
         for (let j = 0; j < YINTERVAL; j++) {
-            // interval height
             let y = CORRELATION * j * graphHeight / YINTERVAL;
             let val = parseInt(y / Math.min(...ratio.y));
             drawXLine({x: 50, y, val});
