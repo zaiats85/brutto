@@ -367,7 +367,6 @@ const parseFeed = (feed) => {
     /*Canvas manipulations*/
     const draw = () => {
 
-
         clearCanvas(canavsSize);
 
         // draw control
@@ -377,27 +376,17 @@ const parseFeed = (feed) => {
         let {x: xpos, width: conWidth} = control;
         let {charts, maxY, x} = graphs;
 
-        ratio.rY = getRatioAtoB(graphHeight, Math.max(...maxY), CORRELATION, PRECISION);
-        ratio.mY = getRatioAtoB(thumbHeight, Math.max(...maxY), CORRELATION, PRECISION);
-        ratio.rX = getRatioAtoB(width, x.length, 1, PRECISION);
-        console.log(ratio);
+        ratio.tY = getRatioAtoB(thumbHeight, Math.max(...maxY), CORRELATION, PRECISION);
+        ratio.tX = getRatioAtoB(width, x.length, 1, PRECISION);
+        let {tY, tX} = ratio;
 
         Object.values(charts).forEach(chart => {
-            let {rY, mY, rX} = ratio;
+            let {color, name, type, y} = chart;
 
             // draw thumb
-            drawGraph(chart, rX, mY, x);
+            drawGraph(chart, tX, tY, x);
 
-            // draw chart
-            drawGraph(chart, rX, rY, x, SEPARATE);
-
-            /*let tmp = deepClone(graph);
             let start, end;
-
-            ratio.mY.push(getRatioAtoB(thumbHeight, maxY, CORRELATION, PRECISION));
-            ratio.mX = getRatioAtoB(width, maxX, 1, PRECISION);
-
-            //start
             if (xpos <= 0) {
                 start = 0;
                 end = xpos + conWidth;
@@ -406,20 +395,19 @@ const parseFeed = (feed) => {
                 end = conWidth;
             }
 
-            /!*@TODO refactor this awfull code*!/
-            let x1 = Math.round(maxX * getRatioAtoB(end, width, 1));
-            let x0 = Math.round(maxX * getRatioAtoB(start, width, 1));
+            let x1 = Math.round(x.length * getRatioAtoB(end, width, 1));
+            let x0 = Math.round(x.length * getRatioAtoB(start, width, 1));
 
-            tmp.data.x = deepClone(x).splice(x0, x1);
-            tmp.data.y = deepClone(y).splice(x0, x1);
-            tmp.lineWidth = 3;
-            graph.lineWidth = 2;
+            let newY = deepClone(y).splice(x0, x1);
+            let newX = deepClone(x).splice(x0, x1);
 
-            // draw thumb
-            drawGraph(graph, {rX: ratio.mX, rY: Math.min(...ratio.mY)});
+            let tmp = new Chart(color, name, type, newY);
 
-            // draw graph
-            drawGraph(tmp, {rX: ratio.x, rY: Math.min(...ratio.y)}, SEPARATE);*/
+            ratio.rY = getRatioAtoB(graphHeight, Math.max(...maxY), CORRELATION, PRECISION);
+            ratio.rX = getRatioAtoB(width, newX.length, 1, PRECISION);
+
+            // draw chart
+            drawGraph(tmp, ratio.rX, ratio.rY, newX, SEPARATE);
         });
 
         /*draw xAxis*/
