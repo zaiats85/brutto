@@ -9,6 +9,7 @@ const thumbHeight = 100;
 const graphHeight = 500;
 const buttonSize = {width: "140px", height: "50px"};
 const YINTERVAL = 6;
+const AXISOffset = 40;
 const CORRELATION = 0.9;
 const PRECISION = 3;
 const SEPARATE = 150;
@@ -186,6 +187,25 @@ const parseFeed = (feed) => {
     // clear feed canvas
     const clearCanvas = ({width, height}) => ctx.clearRect(0, 0, width, height);
 
+    const drawXLine = ({x, y, val}) => {
+        let dY = y + SEPARATE;
+        ctx.save();
+        ctx.lineWidth = 1;
+        /*draw xAxis*/
+        ctx.beginPath();
+
+        ctx.moveTo(x, dY);
+        ctx.strokeStyle = 'grey';
+        ctx.lineTo(width - x, dY);
+
+        ctx.scale(1, -1);
+        ctx.fillStyle = 'grey';
+        ctx.fillText(val, x, -(dY + 10));
+
+        ctx.stroke();
+        ctx.restore();
+    };
+
     // delete graph from feed canvas
     const toggleGraph = (evt) => {
 
@@ -224,49 +244,20 @@ const parseFeed = (feed) => {
         for (let i = 0, k = x.length; i < k; i++) {
             ctx.lineTo(i * rX, y[i] * rY + separate);
 
-            /*X AXIS*/
+
             if (i % Math.round(k/YINTERVAL) === 1 && separate) {
                 ctx.save();
                 ctx.scale(1, -1);
                 ctx.fillStyle = "grey";
+                /*X AXIS*/
                 ctx.fillText(getDate(x[i]), i * rX, -(separate - 25));
                 ctx.restore();
+
+                /*Y AXIS*/
+                let y = parseInt((i/k) * CORRELATION);
+
             }
 
-            /*Y AXIS*/
-            if (i % Math.round(k/YINTERVAL) === 1 && separate) {
-
-                console.log(Math.round(k/YINTERVAL));
-
-                let offset = 40;
-                let y = CORRELATION * i * graphHeight / YINTERVAL;
-
-                ctx.save();
-                ctx.scale(1, -1);
-                ctx.lineWidth = 1;
-                ctx.strokeStyle = 'grey';
-
-                ctx.beginPath();
-                ctx.moveTo(offset, SEPARATE);
-                ctx.lineTo(width - x, SEPARATE);
-
-                ctx.fillText(32, x, -(132 + 10));
-                ctx.stroke();
-                ctx.restore();
-
-
-                /*let val = parseInt(y / rY);
-                let dY = y + SEPARATE;
-
-                ctx.beginPath();
-                ctx.moveTo(offset, dY);
-
-                ctx.lineTo(width - x, dY);
-
-                ctx.scale(1, -1);
-                ctx.fillText(val, x, -(dY + 10));
-                */
-            }
         }
 
         ctx.stroke();
@@ -438,14 +429,11 @@ const parseFeed = (feed) => {
             drawGraph(tmp, ratio.rX, Math.min(...ratio.rY), newX, SEPARATE);
         });
 
-        /*draw xAxis*/
         for (let j = 0; j < YINTERVAL; j++) {
             let y = CORRELATION * j * graphHeight / YINTERVAL;
-            let val = parseInt(y / Math.min(...ratio.y));
-            drawXLine({x: 50, y, val});
+            let val = parseInt(y / Math.min(...ratio.rY));
+            drawXLine({x: AXISOffset, y, val});
         }
-
-
 
     };
 
