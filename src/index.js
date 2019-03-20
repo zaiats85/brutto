@@ -185,17 +185,18 @@ const parseFeed = (feed) => {
     const toggleGraph = (evt) => {
 
         const key = evt.target.id;
-        const tmp = cachedGraph[key];
+        let  { charts: clonedCharts } = cachedGraph;
+        let  { charts } = graphs;
+        const tmp = clonedCharts[key];
 
-        if (graphs[key]) {
+        /*@TODO toggle buttons with SVG*/
+        if (charts[key]) {
             //delete the graph
-            graphs = objectWithoutKey(graphs, key);
-            /*@TODO toggle buttons with SVG*/
+            graphs.charts = objectWithoutKey(charts, key);
             evt.target.style.backgroundColor = 'white';
         } else {
             //add the graph
-            graphs[key] = tmp;
-            /*@TODO toggle buttons with SVG*/
+            graphs.charts[key] = tmp;
             evt.target.style.backgroundColor = tmp.color;
         }
 
@@ -223,7 +224,7 @@ const parseFeed = (feed) => {
     };
 
     // create single graph
-    const drawGraph = (input, {rX, rY}, x, separate = 0) => {
+    const drawGraph = (input, rX, rY, x, separate = 0) => {
         let {color, y} = input;
 
         ctx.lineWidth = 3;
@@ -377,16 +378,18 @@ const parseFeed = (feed) => {
         let {charts, maxY, x} = graphs;
 
         ratio.rY = getRatioAtoB(graphHeight, Math.max(...maxY), CORRELATION, PRECISION);
+        ratio.mY = getRatioAtoB(thumbHeight, Math.max(...maxY), CORRELATION, PRECISION);
         ratio.rX = getRatioAtoB(width, x.length, 1, PRECISION);
+        console.log(ratio);
 
         Object.values(charts).forEach(chart => {
-            // draw chart
-            drawGraph(chart, ratio, x);
-
-            let rXt, rYt;
+            let {rY, mY, rX} = ratio;
 
             // draw thumb
-            drawGraph(chart, {rXt, rYt}, x, SEPARATE);
+            drawGraph(chart, rX, mY, x);
+
+            // draw chart
+            drawGraph(chart, rX, rY, x, SEPARATE);
 
             /*let tmp = deepClone(graph);
             let start, end;
