@@ -57,11 +57,12 @@ class Control {
 
 /*CHART*/
 class Chart {
-    constructor(color, name, type, y) {
+    constructor(color, name, type, y, max) {
         this.y = y;
         this.color = color;
         this.name = name;
         this.type = type;
+        this.max = max;
     };
 }
 
@@ -102,6 +103,9 @@ const objectWithoutKey = (object, key) => {
 
 // deep clone
 const deepClone = (input) => JSON.parse(JSON.stringify(input));
+
+// remove
+const remove = (array, element) => array.filter(el => el !== element);
 
 // Jan 24 e.g.
 const getDate = timestamp => {
@@ -163,12 +167,13 @@ const parseFeed = (feed) => {
         Object.entries(names).forEach(([key, value]) => {
             // remove first index string type
             let y = columns.find(col => col.includes(key)).filter(item => !isNaN(item));
+            let max = Math.max(...y);
 
             // create charts n buttons
-            graphs.charts[key] = new Chart(colors[key], names[key], types[key], y);
+            graphs.charts[key] = new Chart(colors[key], names[key], types[key], y, max);
             buttons[key] = new Button(colors[key], key, value, buttonSize);
 
-            graphs.maxY.push(Math.max(...y));
+            graphs.maxY.push(max);
         });
 
         // interesting approach to manipulate scene redraw, at least for me
@@ -185,21 +190,23 @@ const parseFeed = (feed) => {
     const toggleGraph = (evt) => {
 
         const key = evt.target.id;
-        let  { charts: clonedCharts } = cachedGraph;
-        let  { charts } = graphs;
+        const  { charts: clonedCharts } = cachedGraph;
+        const  { charts, maxY } = graphs;
         const tmp = clonedCharts[key];
 
-        /*@TODO toggle buttons with SVG*/
+        /*@TODO think of immutability like redux store*/
         if (charts[key]) {
             //delete the graph
             graphs.charts = objectWithoutKey(charts, key);
+            graphs.maxY = remove(maxY, tmp.max);
             evt.target.style.backgroundColor = 'white';
         } else {
+        /*@TODO toggle buttons with SVG*/
             //add the graph
             graphs.charts[key] = tmp;
+            graphs.maxY.push(tmp.max);
             evt.target.style.backgroundColor = tmp.color;
         }
-
         //redraw the scene
         draw()
     };
@@ -378,8 +385,10 @@ const parseFeed = (feed) => {
 
         ratio.tY = getRatioAtoB(thumbHeight, Math.max(...maxY), CORRELATION, PRECISION);
         ratio.tX = getRatioAtoB(width, x.length, 1, PRECISION);
+        ratio.rY = getRatioAtoB(graphHeight, Math.max(...maxY), CORRELATION, PRECISION);
         let {tY, tX} = ratio;
 
+        console.log(ratio)
         Object.values(charts).forEach(chart => {
             let {color, name, type, y} = chart;
 
@@ -403,7 +412,6 @@ const parseFeed = (feed) => {
 
             let tmp = new Chart(color, name, type, newY);
 
-            ratio.rY = getRatioAtoB(graphHeight, Math.max(...maxY), CORRELATION, PRECISION);
             ratio.rX = getRatioAtoB(width, newX.length, 1, PRECISION);
 
             // draw chart
