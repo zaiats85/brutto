@@ -5,7 +5,7 @@ const method = "GET";
 const url = "data.json";
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
 const canavsSize = {width: 1200, height: 650};
-const thumbHeight = 100;
+const thumbSize = {width: 1200, height: 100};
 const graphHeight = 500;
 const buttonSize = {width: "140px", height: "50px"};
 const YINTERVAL = 6;
@@ -76,6 +76,44 @@ class Button {
         this.label = label;
         this.size = size;
     };
+}
+
+/*GRAPH*/
+class Graph {
+    constructor(x, { width, height }){
+        this.x = x;
+        this.charts = [];
+        this.ratio = {};
+        this.button = [];
+        this.maxY = [];
+        this.width = width;
+        this.height = height;
+    }
+
+    setRatio(){
+        this.ratio.rX = Graph.getRelationAtoB(this.height, Math.max(...this.maxY), CORRELATION, PRECISION);
+        this.ratio.tY = Graph.getRelationAtoB(this.width, this.x.length, 1 , PRECISION);
+    };
+
+    addGraph(chart){
+        this.charts.push(new Chart(chart));
+    };
+
+    addButton(button){
+        this.button.push(new Button(button))
+    };
+
+    addMaxY(maxY){
+        this.maxY.push(maxY);
+    };
+
+    static getRelationAtoB(a, b, c = CORRELATION, precise = false){
+        if(precise){
+            return ((a / b) * c).toPrecision(PRECISION);
+        } else {
+            return +(a / b) * c
+        }
+    }
 }
 
 /* UTILS */
@@ -160,11 +198,12 @@ const parseFeed = (feed) => {
     canvas.onmouseup = myUp;
     canvas.onmousemove = myMove;
 
+    /*start*/
+
     const init = () => {
         // Form Graphs n Buttons
-
-        /*X is the same for each graph*/
-        graphs.x = columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
+        let x = columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
+        let graph = new Graph(x, thumbSize);
 
         Object.entries(names).forEach(([key, value]) => {
             // remove first index string type
@@ -172,11 +211,12 @@ const parseFeed = (feed) => {
             let max = Math.max(...y);
 
             // create charts n buttons
-            graphs.charts[key] = new Chart(colors[key], names[key], types[key], y, max);
-            buttons[key] = new Button(colors[key], key, value, buttonSize);
-
-            graphs.maxY.push(max);
+            graph.addGraph({ color: colors[key], name: names[key], type: types[key], y, max });
+            graph.addButton({color: colors[key], key, value, buttonSize });
+            graph.addMaxY(max);
         });
+
+        graph.setRatio();
 
         // interesting approach to manipulate scene redraw, at least for me
         cachedGraph = deepClone(graphs);
@@ -184,6 +224,8 @@ const parseFeed = (feed) => {
         draw();
         end(canvas);
     };
+    /*end*/
+
 
     // clear feed canvas
     const clearCanvas = ({width, height}) => ctx.clearRect(0, 0, width, height);
