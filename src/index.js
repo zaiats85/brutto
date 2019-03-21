@@ -137,7 +137,7 @@ class Graph {
     };
 
     addGraph(key, chart){
-        this.charts[key] = chart;
+        this.charts[key] = new Chart(chart);
     };
 
     addProjectionGraph(key, chart){
@@ -153,17 +153,17 @@ class Graph {
     };
 
     // create a projection
-    mutateGraph(start, end, chart){
+    mutatedGraph(start, end, key, chart){
         let x1 = Math.round(this.num * Graph.getRelationAtoB(end, this.width, 1));
         let x0 = Math.round(this.num * Graph.getRelationAtoB(start, this.width, 1));
 
-        let newY = deepClone(chart.y).splice(x0, x1);
-        let newX = deepClone(chart.x).splice(x0, x1);
-        let maxNewY = Math.max(...newY);
+        let projection = new Chart(chart);
+            projection.y.splice(x0,x1);
+            projection.x.splice(x0, x1);
+            chart.max = Math.max(...projection.y);
 
-        let rel = Graph.getRelationAtoB(this.graphHeight, maxNewY, CORRELATION, PRECISION);
-
-        return {newY, newX, rel}
+        this.addMaxY2(chart.max);
+        this.projection[key] = new Chart(chart);
     }
 
     // get simple ratio A to B (with correlation);
@@ -301,39 +301,42 @@ class Scene {
     setProjection(){
         // Form Projection
 
-        const { x, width } = this.control;
-        let start = (x <= 0) ? 0 : x;
-        let end = x + width;
-
-        Object.entries(this.names).forEach(([key, value]) => {
-            this.graph
-        });
-        debugger
     }
 
     setThumbGraph(){
         // Form Graphs
         let x = this.columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
-        this.graph.set('num' ,x.length);
+        this.graph.set('num', x.length);
+
+        const { x: xContr, width } = this.control;
+        let start = (xContr <= 0) ? 0 : xContr;
+        let end = xContr + width;
 
         Object.entries(this.names).forEach(([key, value]) => {
             // remove first index string type
             let y = this.columns.find(col => col.includes(key)).filter(item => !isNaN(item));
             let max = Math.max(...y);
 
-            // create charts n buttons
+            let chart = {color: this.colors[key], name: this.names[key], type: this.types[key], x, y, max};
+
+            // create charts
             this.graph.addGraph(
                 key,
-                new Chart({
-                        color: this.colors[key],
-                        name: this.names[key],
-                        type: this.types[key], x, y, max
-                    })
+                chart
+            );
+            // create charts projection
+            this.graph.mutatedGraph(
+                start,
+                end,
+                key,
+                chart
             );
 
             this.graph.addMaxY(max);
             this.addButton({color: this.colors[key], id: key, label: value, size: buttonSize });
         });
+
+        console.log(this);
     }
 
     addButton(button){
