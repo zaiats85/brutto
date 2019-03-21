@@ -128,7 +128,7 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[4])
+        parseFeed(result[0])
     });
 
 const parseFeed = (feed) => {
@@ -401,6 +401,7 @@ const parseFeed = (feed) => {
 
         // reassign each time
         let {x: xpos, width: conWidth} = control;
+
         let {charts, maxY, x} = graphs;
 
         ratio.tY = getRatioAtoB(thumbHeight, Math.max(...maxY), CORRELATION, PRECISION);
