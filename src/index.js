@@ -85,7 +85,7 @@ class Control {
     // create draggable && resizable rectangle
     draw(context){
         context.fillStyle = "#d4f2f0";
-        this.rectangle(this.control);
+        this.rectangle(this, context);
     };
 }
 
@@ -108,7 +108,8 @@ class Chart {
 /*GRAPH*/
 class Graph {
     constructor({ width, height }){
-        this.num = 32;
+        this.num = 0;
+        this.num2 = 0;
         this.charts = {};
         this.projection = {};
         this.deleted = {};
@@ -125,44 +126,34 @@ class Graph {
     }
 
     get(key){
-        console.log(this[key]);
         return this[key];
     }
+
+    add(key, val){
+        this[key].push(val);
+    };
 
     setRatio(){
         this.ratio.ry = Graph.getRelationAtoB(this.height, Math.max(...this.maxY), CORRELATION, PRECISION);
         this.ratio.rx = Graph.getRelationAtoB(this.width, this.num, 1 , PRECISION);
-        this.ratio.prx = Graph.getRelationAtoB(this.width, this.num, 1, PRECISION);
+        this.ratio.prx = Graph.getRelationAtoB(this.width, this.num2, 1, PRECISION);
         this.ratio.pry = Graph.getRelationAtoB(this.graphHeight, Math.max(...this.maxY2), CORRELATION, PRECISION);
     };
 
     addGraph(key, chart){
         this.charts[key] = new Chart(chart);
     };
-
-    addProjectionGraph(key, chart){
-        this.projection[key] = chart;
-    };
-
-    addMaxY(maxY){
-        this.maxY.push(maxY);
-    };
-
-    addMaxY2(maxY){
-        this.maxY2.push(maxY);
-    };
-
     // create a projection
     mutatedGraph(start, end, key, chart){
         let x1 = Math.round(this.num * Graph.getRelationAtoB(end, this.width, 1));
         let x0 = Math.round(this.num * Graph.getRelationAtoB(start, this.width, 1));
 
-        let projection = new Chart(chart);
-            projection.y.splice(x0,x1);
-            projection.x.splice(x0, x1);
-            chart.max = Math.max(...projection.y);
+        chart.y = chart.y.slice(x0, x1);
+        chart.x = chart.x.slice(x0, x1);
+        chart.max = Math.max(...chart.y);
 
-        this.addMaxY2(chart.max);
+        this.add("maxY2", chart.max);
+        this.set('num2', chart.x.length);
         this.projection[key] = new Chart(chart);
     }
 
@@ -215,6 +206,44 @@ class Scene {
         canvas.onmousedown = this.myDown.bind(this);
         canvas.onmouseup = this.myUp.bind(this);
         canvas.onmousemove = this.myMove.bind(this);
+    }
+
+    setInitialGraph(){
+        // Form Graphs
+        let x = this.columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
+        this.graph.set('num', x.length);
+
+        const { x: xContr, width } = this.control;
+        let start = (xContr <= 0) ? 0 : xContr;
+        let end = xContr + width;
+
+        Object.entries(this.names).forEach(([key, value]) => {
+            // remove first index string type
+            let y = this.columns.find(col => col.includes(key)).filter(item => !isNaN(item));
+            let max = Math.max(...y);
+
+            let chart = {color: this.colors[key], name: this.names[key], type: this.types[key], x, y, max};
+
+            // create charts
+            this.graph.addGraph(
+                key,
+                chart
+            );
+            // create charts projection
+            this.graph.mutatedGraph(
+                start,
+                end,
+                key,
+                chart
+            );
+
+            this.graph.add("maxY", max);
+            this.addButton({color: this.colors[key], id: key, label: value, size: buttonSize });
+        });
+
+        this.graph.setRatio();
+
+        console.log(this);
     }
 
     /*EVENT CALLBACKS*/
@@ -298,47 +327,6 @@ class Scene {
         this.control = control;
     }
 
-    setProjection(){
-        // Form Projection
-
-    }
-
-    setThumbGraph(){
-        // Form Graphs
-        let x = this.columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
-        this.graph.set('num', x.length);
-
-        const { x: xContr, width } = this.control;
-        let start = (xContr <= 0) ? 0 : xContr;
-        let end = xContr + width;
-
-        Object.entries(this.names).forEach(([key, value]) => {
-            // remove first index string type
-            let y = this.columns.find(col => col.includes(key)).filter(item => !isNaN(item));
-            let max = Math.max(...y);
-
-            let chart = {color: this.colors[key], name: this.names[key], type: this.types[key], x, y, max};
-
-            // create charts
-            this.graph.addGraph(
-                key,
-                chart
-            );
-            // create charts projection
-            this.graph.mutatedGraph(
-                start,
-                end,
-                key,
-                chart
-            );
-
-            this.graph.addMaxY(max);
-            this.addButton({color: this.colors[key], id: key, label: value, size: buttonSize });
-        });
-
-        console.log(this);
-    }
-
     addButton(button){
         this.buttons.push(button)
     };
@@ -348,11 +336,11 @@ class Scene {
         this.context.lineWidth = 1;
         this.context.strokeStyle = 'grey';
         this.context.fillStyle = 'grey';
-        let gr = ratio.rY;
+        let gr = this.graph.ratio.ry;
         /*draw xAxis*/
         for (let j = 0; j < YINTERVAL; j++) {
             this.context.save();
-            let y = CORRELATION * j * graphHeight / YINTERVAL;
+            let y = CORRELATION * j * this.graph.graphHeight / YINTERVAL;
             let val = parseInt(y / gr).toString();
             let dY = y + SEPARATE;
 
@@ -360,7 +348,7 @@ class Scene {
             this.context.beginPath();
             this.context.moveTo(AXISOffsetX, dY);
 
-            this.context.lineTo(width - AXISOffsetX, dY);
+            this.context.lineTo(this.graph.width - AXISOffsetX, dY);
             this.context.scale(1, -1);
 
             this.context.fillText(val, AXISOffsetX, -(dY + 10));
@@ -398,8 +386,8 @@ class Scene {
         this.context.beginPath();
         this.context.strokeStyle = color;
         this.context.lineJoin = 'round';
-        // LINES
 
+        // LINES
         for (let i = 0, k = x.length; i < k; i++) {
             this.context.lineTo(i * rx, y[i] * ry + separate);
             if (i % Math.round(k/YINTERVAL) === 0 && separate) {
@@ -454,42 +442,29 @@ class Scene {
 
         this.clearCanvas();
 
-        /*this.objects.forEach( o => {
-            o.draw(this.context);
-        });*/
-
         // draw control
         this.control.draw(this.context);
 
         // reassign each time
-        let {charts, ratio} = this.graph;
-
+        let {charts, ratio, projection} = this.graph;
+        let {prx, pry} = ratio;
+        debugger
         Object.values(charts).forEach(chart => {
             this.drawGraph(chart, ratio );
-            //let {projection, ration} = this.formProjection(chart);
         });
 
         // draw main canvas
-        Object.values(charts).forEach(chart => {
-            this.drawGraph(chart, ratio );
+        Object.values(projection).forEach(projection => {
+            this.drawGraph(projection, {rx: prx, ry: pry} , SEPARATE);
         });
 
-
-        /*ratio.rX = getRatioAtoB(width, graphs.newX.length, 1, PRECISION);
-        ratio.rY = Math.min(...ratio.rY);
-
-        Object.values(thumbs).forEach(thumb => {
-            // draw chart
-            drawGraph(thumb, ratio.rX, ratio.rY, graphs.newX, SEPARATE);
-        });
-
-        drawXLine();*/
-
+        this.drawXLine();
     };
 
     init() {
         main.appendChild(this.el);
         this.buttons.forEach(this.drawButton.bind(this));
+        this.draw();
     }
 }
 
@@ -506,25 +481,12 @@ init()
 
 const parseFeed = (feed) => {
 
-    //const {colors, names, types, columns} = feed;
-
     /*CANVAS*/
     const canvas = new Scene(canavsSize, "mainImg", feed);
     canvas.setControl(new Control(controlSize));
 
-    canvas.setThumbGraph();
-    canvas.setProjection();
+    canvas.setInitialGraph();
 
-    graph.setRatio();
     canvas.init();
-
-
-
-    canvas.setGraph(graph);
-
-
-
-
-    canvas.draw();
 
 };
