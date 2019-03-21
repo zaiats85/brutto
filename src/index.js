@@ -7,6 +7,9 @@ const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", 
 const canavsSize = {width: 1200, height: 650};
 const thumbSize = {width: 1200, height: 100};
 const controlSize = {width: 350, height: 100};
+
+const mainSize = {width: 1200, height: 500};
+
 const graphHeight = 500;
 const buttonSize = {width: "140px", height: "50px"};
 const YINTERVAL = 6;
@@ -90,6 +93,7 @@ class Graph {
         this.maxY = [];
         this.width = width;
         this.height = height;
+        this.cachedGraph = [];
     }
 
     setRatio(){
@@ -108,6 +112,11 @@ class Graph {
     addMaxY(maxY){
         this.maxY.push(maxY);
     };
+
+    setCachedGraph(){
+        /*this will ever be the same*/
+        this.cachedGraph = deepClone(this);
+    }
 
     // delete graph from feed canvas
     toggleGraph(evt){
@@ -133,6 +142,27 @@ class Graph {
         //redraw the scene
         Canvas.draw()
     };
+
+    // create a projection
+    mutateGraph(start, end){
+
+
+        let x1 = Math.round(this.num * Graph.getRelationAtoB(end, this.width, 1));
+        let x0 = Math.round(this.num * Graph.getRelationAtoB(start, this.width, 1));
+
+        Object.values(this.charts).forEach(chart => {
+
+            let newY = deepClone(chart.y).splice(x0, x1);
+            let newX = deepClone(chart.x).splice(x0, x1);
+
+            let maxNewY = Math.max(...newY);
+
+            new Chart(color, name, type, newY, maxNewY);
+            //ratio.rY.push(getRatioAtoB(graphHeight, maxNewY, CORRELATION, PRECISION));
+
+        });
+
+    }
 
     drawButton({id, color, label, size: {width, height}}){
         let button = document.createElement('button');
@@ -162,6 +192,8 @@ class Scene {
     constructor(size = {width: 1200, height: 650}, id ) {
         this.graph = {};
         this.control = {};
+        this.projection = {};
+
         this.width = size.width;
         this.height = size.height;
         let canvas = document.createElement('canvas');
@@ -272,6 +304,10 @@ class Scene {
         this.graph = graph;
     }
 
+    cloneProjection(graph){
+        this.projection = deepClone(this.graph);
+    }
+
     /*DRAWING*/
     drawXLine(){
         this.context.lineWidth = 1;
@@ -353,6 +389,24 @@ class Scene {
         this.context.stroke();
     };
 
+    formProjection(){
+
+        let start, end;
+        const { x, width } = this.control;
+
+        if (x <= 0) {
+            start = 0;
+            end = x + width;
+        } else {
+            start = x;
+            end = width;
+        }
+
+        this.graph.mutateGraph(start, end);
+
+
+    }
+
     /*Canvas manipulations*/
     draw(){
 
@@ -370,33 +424,14 @@ class Scene {
 
         charts.forEach(chart => {
             this.drawGraph(chart, ratio );
-        })
+            this.formProjection();
+        });
 
         // draw main canvas
-        /*Object.values(charts).forEach(chart => {
+        Object.values(charts).forEach(chart => {
             this.drawGraph(chart, ratio );
-        });*/
+        });
 
-        /*Object.values(charts).forEach(chart => {
-            drawGraph(chart, tX, tY, x);
-            let start, end;
-            if (xpos <= 0) {
-                start = 0;
-                end = xpos + conWidth;
-            } else {
-                start = xpos;
-                end = conWidth;
-            }
-
-            let x1 = Math.round(x.length * getRatioAtoB(end, width, 1));
-            let x0 = Math.round(x.length * getRatioAtoB(start, width, 1));
-
-            let newY = deepClone(y).splice(x0, x1);
-            graphs.newX = deepClone(x).splice(x0, x1);
-            let maxNewY = Math.max(...newY);
-            thumbs[name] = new Chart(color, name, type, newY, maxNewY);
-            ratio.rY.push(getRatioAtoB(graphHeight, maxNewY, CORRELATION, PRECISION));
-        });*/
 
         /*ratio.rX = getRatioAtoB(width, graphs.newX.length, 1, PRECISION);
         ratio.rY = Math.min(...ratio.rY);
@@ -475,10 +510,12 @@ const parseFeed = (feed) => {
         });
         graph.setRatio();
 
-        canvas.setGraph(graph);
-
         // interesting approach to manipulate scene redraw, at least for me
-        cachedGraph = deepClone(graph);
+        graph.setCachedGraph();
+
+        canvas.setGraph(graph);
+        canvas.cloneProjection();
+
         canvas.draw();
 
     };
