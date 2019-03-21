@@ -6,6 +6,7 @@ const url = "data.json";
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
 const canavsSize = {width: 1200, height: 650};
 const thumbSize = {width: 1200, height: 100};
+const controlSize = {width: 350, height: 100};
 const graphHeight = 500;
 const buttonSize = {width: "140px", height: "50px"};
 const YINTERVAL = 6;
@@ -46,11 +47,11 @@ const main = document.getElementById("main");
 
 /* CONTROL */
 class Control {
-    constructor() {
+    constructor({width, height} = {width: 350, height: 100}) {
         this.x = 850;
         this.y = 8;
-        this.width = 350;
-        this.height = 100;
+        this.width = width;
+        this.height = height;
         this.fill = "#d4f2f0";
         this.isDragging = false;
         this.isResizing = false;
@@ -108,226 +109,8 @@ class Graph {
         this.maxY.push(maxY);
     };
 
-    static getRelationAtoB(a, b, c = CORRELATION, precise = false){
-        if(precise){
-            return ((a / b) * c).toPrecision(PRECISION);
-        } else {
-            return +(a / b) * c
-        }
-    }
-}
-
-/* CANVAS */
-class Scene {
-    constructor(size = {width: 1200, height: 650}, id ) {
-        this.objects = [];
-        this.width = size.width;
-        this.height = size.height;
-        let canvas = document.createElement('canvas');
-        canvas.width = size.width;
-        canvas.height = size.height;
-        canvas.id = id;
-        document.body.appendChild(canvas);
-        this.context = canvas.getContext('2d');
-
-        canvas.onmousedown = this.myDown;
-        canvas.onmouseup = this.myUp;
-        canvas.onmousemove = this.myMove;
-
-    }
-
-    myMove(e){
-        console.log("move")
-        // if we're dragging || resizing anything...
-        if (dragok || dragL || dragR) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            let {x, isDragging} = control;
-            // current mouse position X
-            let {x: mx} = getMousePos(e);
-
-            // calculate the distance the mouse has moved since the last mousemove
-            let dx = mx - startX;
-
-            // move control that isDragging by the distance the mouse has moved since the last mousemove
-            if (isDragging) {
-                control.x += dx;
-            } else if (dragL) {
-                control.width += x - mx;
-                control.x = mx;
-            } else if (dragR) {
-                control.width = Math.abs(x - mx);
-            }
-
-            // redraw the scene
-            draw();
-
-            // reset the starting mouse position for the next mousemove
-            startX = mx;
-        }
-    }
-
-    myDown(e){
-        console.log("down")
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        debugger
-
-        const {x, y, width, height} = control;
-        // left n right resizable areas
-        const leftSide = new Path2D();
-        const rightSide = new Path2D();
-
-        // current mouse position X, yScaled(1, -1);
-        const {x: mx, ySc: mySc} = getMousePos(e);
-        leftSide.rect(x, y, 10, height);
-        rightSide.rect(width + x - 10, y, 10, height);
-
-        // right
-        if (ctx.isPointInPath(rightSide, mx, mySc)) {
-            dragR = true;
-            control.isResizing = true;
-        }
-        // left
-        else if (ctx.isPointInPath(leftSide, mx, mySc)) {
-            dragL = true;
-            control.isResizing = true;
-        }
-        // drag
-        else if (mx > x && mx < x + width) {
-            dragok = true;
-            control.isDragging = true;
-        }
-
-        // save the current mouse position
-        startX = mx;
-    }
-
-    myUp(e){
-        e.preventDefault();
-        e.stopPropagation();
-
-        /*shut it down*/
-        dragok = dragL = dragR = false;
-        control.isDragging = control.isResizing = false;
-    }
-
-    addObject(object) {
-        this.objects.push(object);
-    }
-
-    render() {
-        this.context.clearRect(0, 0, this.context.canvas.width, this.context.canvas.height);
-        this.objects.forEach( o => {
-            o.draw(this.context);
-        });
-    }
-}
-
-/* UTILS */
-
-/*const createCanvas = ({width, height}, id) => {
-    let canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    canvas.id = id;
-    return canvas
-};*/
-
-const objectWithoutKey = (object, key) => {
-    const {[key]: deletedKey, ...otherKeys} = object;
-    return otherKeys;
-};
-
-// deep clone
-const deepClone = (input) => JSON.parse(JSON.stringify(input));
-
-// remove
-const remove = (array, element) => array.filter(el => el !== element);
-
-// Jan 24 e.g.
-const getDate = timestamp => {
-    let date = new Date(timestamp);
-    return `${months[date.getMonth()]} ${date.getUTCDate()}`;
-};
-
-// get simple ratio A to B (with correlation);
-const getRatioAtoB = (a, b, c, precise = false) => {
-    return precise ? +((a / b) * c).toPrecision(precise) : +(a / b) * c;
-};
-
-/*RUNTIME*/
-async function init() {
-    let data = await getJson(method, url);
-    return JSON.parse(data);
-}
-
-init()
-    .then(result => {
-        parseFeed(result[0])
-    });
-
-const parseFeed = (feed) => {
-    let graph = {};
-    let cachedGraph = {};
-
-    const control = new Control();
-
-    const {colors, names, types, columns} = feed;
-
-
-    /*CANVAS*/
-    const canvas = new Scene(canavsSize, "mainImg");
-    /*const canvas = createCanvas(canavsSize, 'mainImg');
-    let ctx = canvas.getContext("2d");*/
-    let ctx = canvas.context;
-    ctx.font = "18px Arial";
-
-    // listen for mouse events
-    let dragok = false;
-    let dragL = false;
-    let dragR = false;
-    let startX;
-
-    canvas.onmousedown = myDown;
-    canvas.onmouseup = myUp;
-    canvas.onmousemove = myMove;
-
-    const init = () => {
-        // Form Graphs n Buttons
-        let x = columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
-
-        /*number of elements to present*/
-        graph = new Graph(x.length, thumbSize);
-
-        Object.entries(names).forEach(([key, value]) => {
-            // remove first index string type
-            let y = columns.find(col => col.includes(key)).filter(item => !isNaN(item));
-            let max = Math.max(...y);
-
-            // create charts n buttons
-            graph.addGraph({ color: colors[key], name: names[key], type: types[key], x, y, max});
-            graph.addButton({color: colors[key], id: key, label: value, size: buttonSize });
-            graph.addMaxY(max);
-        });
-
-        graph.setRatio();
-
-        // interesting approach to manipulate scene redraw, at least for me
-        cachedGraph = deepClone(graph);
-
-        draw();
-        end(canvas);
-    };
-
-    // clear feed canvas
-    const clearCanvas = ({width, height} = canavsSize) => ctx.clearRect(0, 0, width, height);
-
     // delete graph from feed canvas
-    const toggleGraph = (evt) => {
+    toggleGraph(evt){
 
         const key = evt.target.id;
         const  { charts: clonedCharts } = cachedGraph;
@@ -341,109 +124,17 @@ const parseFeed = (feed) => {
             graph.maxY = remove(maxY, tmp.max);
             evt.target.style.backgroundColor = 'white';
         } else {
-        /*@TODO toggle buttons with SVG*/
+            /*@TODO toggle buttons with SVG*/
             //add the graph
             graph.charts[key] = tmp;
             graph.maxY.push(tmp.max);
             evt.target.style.backgroundColor = tmp.color;
         }
         //redraw the scene
-        draw()
+        Canvas.draw()
     };
 
-    // create single graph
-    const drawGraph = ({ color, x, y }, { rx, ry }, separate = 0) => {
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.strokeStyle = color;
-        ctx.lineJoin = 'round';
-        // LINES
-
-        for (let i = 0, k = x.length; i < k; i++) {
-            ctx.lineTo(i * rx, y[i] * ry + separate);
-            if (i % Math.round(k/YINTERVAL) === 0 && separate) {
-                let pos = {x: i * rx, y: -(separate - AXISOffsetY)};
-                drawAxis(getDate(x[i]), pos );
-            }
-        }
-        ctx.stroke();
-    };
-
-    const drawXLine = () => {
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'grey';
-        ctx.fillStyle = 'grey';
-        let gr = ratio.rY;
-        /*draw xAxis*/
-        for (let j = 0; j < YINTERVAL; j++) {
-            ctx.save();
-            let y = CORRELATION * j * graphHeight / YINTERVAL;
-            let val = parseInt(y / gr).toString();
-            let dY = y + SEPARATE;
-
-            /*draw xAxis*/
-            ctx.beginPath();
-            ctx.moveTo(AXISOffsetX, dY);
-
-            ctx.lineTo(width - AXISOffsetX, dY);
-            ctx.scale(1, -1);
-
-            ctx.fillText(val, AXISOffsetX, -(dY + 10));
-            ctx.stroke();
-            ctx.restore();
-        }
-
-    };
-
-    const drawAxis = (text, {x, y}) => {
-        ctx.save();
-        ctx.scale(1, -1);
-        ctx.fillStyle = "grey";
-        ctx.fillText(text, x, y);
-        ctx.restore();
-    };
-
-    // create draggable && resizable rectangle
-    const drawControl = () => {
-        ctx.fillStyle = "#d4f2f0";
-        rect(control);
-    };
-
-    // draw a  rect
-    const rect = ({x, y, width, height}) => {
-        ctx.beginPath();
-        ctx.rect(x, y, width, height);
-        ctx.closePath();
-        ctx.fill();
-    };
-
-    // get Mouse Position
-    const getMousePos = (evt) => {
-        let rect = canvas.getBoundingClientRect();
-        return {
-            x: evt.clientX - rect.left,
-            y: evt.clientY - rect.top,
-            ySc: rect.bottom - evt.clientY
-        };
-    };
-
-    // handle mousedown events
-    function myDown(e) {
-
-    }
-
-    // handle mouseup events
-    function myUp(e) {
-
-    }
-
-    // handle mouse moves
-    function myMove(e) {
-
-    }
-
-    const drawButton = ({id, color, label, size: {width, height}}) => {
-
+    drawButton({id, color, label, size: {width, height}}){
         let button = document.createElement('button');
         button.id = id;
         button.innerText = label;
@@ -451,26 +142,240 @@ const parseFeed = (feed) => {
         button.style.width = width;
         button.style.height = height;
 
-        button.addEventListener("click", toggleGraph);
+        button.addEventListener("click", this.toggleGraph);
         controls.appendChild(button);
 
     };
 
-    /*Canvas manipulations*/
-    const draw = () => {
+    // get simple ratio A to B (with correlation);
+    static getRelationAtoB(a, b, c = CORRELATION, precise = false){
+        if(precise){
+            return ((a / b) * c).toPrecision(PRECISION);
+        } else {
+            return +(a / b) * c
+        }
+    }
+}
 
-        clearCanvas();
+/* CANVAS */
+class Scene {
+    constructor(size = {width: 1200, height: 650}, id ) {
+        this.graph = {};
+        this.control = {};
+        this.width = size.width;
+        this.height = size.height;
+        let canvas = document.createElement('canvas');
+        canvas.width = size.width;
+        canvas.height = size.height;
+        canvas.id = id;
+
+        document.body.appendChild(canvas);
+        this.context = canvas.getContext('2d');
+        this.context.font = "18px Arial";
+        this.rect = canvas.getBoundingClientRect();
+
+        // listen for mouse events
+        this.dragok = false;
+        this.dragL = false;
+        this.dragR = false;
+        this.startX;
+
+        /* EVENTS */
+        canvas.onmousedown = this.myDown.bind(this);
+        canvas.onmouseup = this.myUp.bind(this);
+        canvas.onmousemove = this.myMove.bind(this);
+    }
+
+    /*EVENT CALLBACKS*/
+    myMove(e){
+        // if we're dragging || resizing anything...
+        if (this.dragok || this.dragL || this.dragR) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            let {x, isDragging} = this.control;
+            // current mouse position X
+            let {x: mx} = this.getMousePos(e);
+
+            // calculate the distance the mouse has moved since the last mousemove
+            let dx = mx - this.startX;
+
+            // move control that isDragging by the distance the mouse has moved since the last mousemove
+            if (isDragging) {
+                this.control.x += dx;
+            } else if (this.dragL) {
+                this.control.width += x - mx;
+                this.control.x = mx;
+            } else if (this.dragR) {
+                this.control.width = Math.abs(x - mx);
+            }
+
+            // redraw the scene
+            this.draw();
+
+            // reset the starting mouse position for the next mousemove
+            this.startX = mx;
+        }
+    }
+
+    myDown(e){
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const {x, y, width, height} = this.control;
+
+        // left n right resizable areas
+        const leftSide = new Path2D();
+        const rightSide = new Path2D();
+
+        // current mouse position X, yScaled(1, -1);
+        const {x: mx, ySc: mySc} = this.getMousePos(e);
+
+        leftSide.rect(x, y, 10, height);
+        rightSide.rect(width + x - 10, y, 10, height);
+
+        // right
+        if (this.context.isPointInPath(rightSide, mx, mySc)) {
+            this.dragR = true;
+            this.control.isResizing = true;
+        }
+        // left
+        else if (this.context.isPointInPath(leftSide, mx, mySc)) {
+            this.dragL = true;
+            this.control.isResizing = true;
+        }
+        // drag
+        else if (mx > x && mx < x + width) {
+            this.dragok = true;
+            this.control.isDragging = true;
+        }
+
+        // save the current mouse position
+        this.startX = mx;
+    }
+
+    myUp(e){
+        e.preventDefault();
+        e.stopPropagation();
+
+        /*shut it down*/
+        this.dragok = this.dragL = this.dragR = false;
+        this.control.isDragging = this.control.isResizing = false;
+    }
+
+    setControl(control) {
+        this.control = control;
+    }
+
+    setGraph(graph){
+        this.graph = graph;
+    }
+
+    /*DRAWING*/
+    drawXLine(){
+        this.context.lineWidth = 1;
+        this.context.strokeStyle = 'grey';
+        this.context.fillStyle = 'grey';
+        let gr = ratio.rY;
+        /*draw xAxis*/
+        for (let j = 0; j < YINTERVAL; j++) {
+            this.context.save();
+            let y = CORRELATION * j * graphHeight / YINTERVAL;
+            let val = parseInt(y / gr).toString();
+            let dY = y + SEPARATE;
+
+            /*draw xAxis*/
+            this.context.beginPath();
+            this.context.moveTo(AXISOffsetX, dY);
+
+            this.context.lineTo(width - AXISOffsetX, dY);
+            this.context.scale(1, -1);
+
+            this.context.fillText(val, AXISOffsetX, -(dY + 10));
+            this.context.stroke();
+            this.context.restore();
+        }
+
+    };
+
+    drawAxis(text, {x, y}){
+        this.context.save();
+        this.context.scale(1, -1);
+        this.context.fillStyle = "grey";
+        this.context.fillText(text, x, y);
+        this.context.restore();
+    };
+
+    // create draggable && resizable rectangle
+    drawControl(){
+        this.context.fillStyle = "#d4f2f0";
+        this.rectangle(this.control);
+    };
+
+    // draw a  rect
+    rectangle ({x, y, width, height}){
+        this.context.beginPath();
+        this.context.rect(x, y, width, height);
+        this.context.closePath();
+        this.context.fill();
+    };
+
+    // get Mouse Position
+    getMousePos(evt){
+        return {
+            x: evt.clientX - this.rect.left,
+            y: evt.clientY - this.top,
+            ySc: this.rect.bottom - evt.clientY
+        };
+    };
+
+    // clear feed canvas
+    clearCanvas({width, height} = canavsSize){
+        this.context.clearRect(0, 0, width, height)
+    };
+
+    // create single graph
+    drawGraph({ color, x, y }, { rx, ry }, separate = 0){
+        this.context.lineWidth = 3;
+        this.context.beginPath();
+        this.context.strokeStyle = color;
+        this.context.lineJoin = 'round';
+        // LINES
+
+        for (let i = 0, k = x.length; i < k; i++) {
+            this.context.lineTo(i * rx, y[i] * ry + separate);
+            if (i % Math.round(k/YINTERVAL) === 0 && separate) {
+                let pos = {x: i * rx, y: -(separate - AXISOffsetY)};
+                drawAxis(getDate(x[i]), pos );
+            }
+        }
+        this.context.stroke();
+    };
+
+    /*Canvas manipulations*/
+    draw(){
+
+        this.clearCanvas();
+
+        /*this.objects.forEach( o => {
+            o.draw(this.context);
+        });*/
 
         // draw control
-        drawControl();
+        this.drawControl();
 
         // reassign each time
-        let {charts, ratio} = graph;
+        let {charts, ratio} = this.graph;
+
+        charts.forEach(chart => {
+            this.drawGraph(chart, ratio );
+        })
 
         // draw main canvas
-        Object.values(charts).forEach(chart => {
-            drawGraph(chart, ratio );
-        });
+        /*Object.values(charts).forEach(chart => {
+            this.drawGraph(chart, ratio );
+        });*/
 
         /*Object.values(charts).forEach(chart => {
             drawGraph(chart, tX, tY, x);
@@ -505,10 +410,77 @@ const parseFeed = (feed) => {
 
     };
 
-    /*DOM manipulations*/
-    const end = (canvas) => {
-        //main.appendChild(canvas);
-        Object.values(graph.button).forEach(drawButton);
+    render() {
+
+
+    }
+}
+
+/* UTILS */
+
+const objectWithoutKey = (object, key) => {
+    const {[key]: deletedKey, ...otherKeys} = object;
+    return otherKeys;
+};
+
+// deep clone
+const deepClone = (input) => JSON.parse(JSON.stringify(input));
+
+// remove
+const remove = (array, element) => array.filter(el => el !== element);
+
+// Jan 24 e.g.
+const getDate = timestamp => {
+    let date = new Date(timestamp);
+    return `${months[date.getMonth()]} ${date.getUTCDate()}`;
+};
+
+/*RUNTIME*/
+async function init() {
+    let data = await getJson(method, url);
+    return JSON.parse(data);
+}
+
+init()
+    .then(result => {
+        parseFeed(result[0])
+    });
+
+const parseFeed = (feed) => {
+    let cachedGraph = {};
+    const {colors, names, types, columns} = feed;
+
+
+    /*CANVAS*/
+    const canvas = new Scene(canavsSize, "mainImg");
+    canvas.setControl(new Control(controlSize));
+
+    const init = () => {
+
+        // Form Graphs
+        let x = columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
+
+        /*number of elements to present*/
+        let graph = new Graph(x.length, thumbSize);
+
+        Object.entries(names).forEach(([key, value]) => {
+            // remove first index string type
+            let y = columns.find(col => col.includes(key)).filter(item => !isNaN(item));
+            let max = Math.max(...y);
+
+            // create charts n buttons
+            graph.addGraph({ color: colors[key], name: names[key], type: types[key], x, y, max});
+            graph.addButton({color: colors[key], id: key, label: value, size: buttonSize });
+            graph.addMaxY(max);
+        });
+        graph.setRatio();
+
+        canvas.setGraph(graph);
+
+        // interesting approach to manipulate scene redraw, at least for me
+        cachedGraph = deepClone(graph);
+        canvas.draw();
+
     };
 
     init();
