@@ -71,7 +71,7 @@ class Chart {
 
 /*BUTTON*/
 class Button {
-    constructor(color, id, label, size) {
+    constructor( {color, id, label, size} ) {
         this.color = color;
         this.id = id;
         this.label = label;
@@ -176,7 +176,6 @@ const parseFeed = (feed) => {
 
     let ratio = {};
     const control = new Control();
-    let buttons = {};
     const {colors, names, types, columns} = feed;
     const {width} = canavsSize;
     let {fill} = control;
@@ -210,7 +209,7 @@ const parseFeed = (feed) => {
 
             // create charts n buttons
             graph.addGraph({ color: colors[key], name: names[key], type: types[key], x, y, max});
-            graph.addButton({color: colors[key], key, value, buttonSize });
+            graph.addButton({color: colors[key], id: key, label: value, size: buttonSize });
             graph.addMaxY(max);
         });
 
@@ -224,27 +223,29 @@ const parseFeed = (feed) => {
     };
 
     // clear feed canvas
-    const clearCanvas = ({width, height}) => ctx.clearRect(0, 0, width, height);
+    const clearCanvas = ({width, height} = canavsSize) => ctx.clearRect(0, 0, width, height);
 
     // delete graph from feed canvas
     const toggleGraph = (evt) => {
 
         const key = evt.target.id;
         const  { charts: clonedCharts } = cachedGraph;
-        const  { charts, maxY } = graphs;
+        const  { charts, maxY } = graph;
         const tmp = clonedCharts[key];
+
+        debugger
 
         /*@TODO think of immutability like redux store*/
         if (charts[key]) {
             //delete the graph
-            graphs.charts = objectWithoutKey(charts, key);
-            graphs.maxY = remove(maxY, tmp.max);
+            graph.charts = objectWithoutKey(charts, key);
+            graph.maxY = remove(maxY, tmp.max);
             evt.target.style.backgroundColor = 'white';
         } else {
         /*@TODO toggle buttons with SVG*/
             //add the graph
-            graphs.charts[key] = tmp;
-            graphs.maxY.push(tmp.max);
+            graph.charts[key] = tmp;
+            graph.maxY.push(tmp.max);
             evt.target.style.backgroundColor = tmp.color;
         }
         //redraw the scene
@@ -332,16 +333,13 @@ const parseFeed = (feed) => {
         e.preventDefault();
         e.stopPropagation();
 
-        let {x, y, width, height} = control;
+        const {x, y, width, height} = control;
         // left n right resizable areas
-        let leftSide = new Path2D();
-        let rightSide = new Path2D();
+        const leftSide = new Path2D();
+        const rightSide = new Path2D();
 
         // current mouse position X, yScaled(1, -1);
-        let {x: mx, ySc: mySc} = getMousePos(e);
-
-        // start
-        /*@TODO remove hardcoded values*/
+        const {x: mx, ySc: mySc} = getMousePos(e);
         leftSide.rect(x, y, 10, height);
         rightSide.rect(width + x - 10, y, 10, height);
 
@@ -408,6 +406,7 @@ const parseFeed = (feed) => {
     }
 
     const drawButton = ({id, color, label, size: {width, height}}) => {
+
         let button = document.createElement('button');
         button.id = id;
         button.innerText = label;
@@ -423,7 +422,7 @@ const parseFeed = (feed) => {
     /*Canvas manipulations*/
     const draw = () => {
 
-        clearCanvas(canavsSize);
+        clearCanvas();
 
         // draw control
         drawControl();
@@ -472,7 +471,7 @@ const parseFeed = (feed) => {
     /*DOM manipulations*/
     const end = (canvas) => {
         main.appendChild(canvas);
-        Object.values(buttons).forEach(drawButton);
+        Object.values(graph.button).forEach(drawButton);
     };
 
     init();
