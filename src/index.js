@@ -117,25 +117,125 @@ class Graph {
     }
 }
 
-/* UTILS */
-const max = arr => {
-    if (!Array.isArray(arr)) throw new Error("array expected");
-    let max = 0;
-    for (let i = 0, r = arr.length; i < r; i++) {
-        if (arr[i] > max && !isNaN(arr[i])) {
-            max = arr[i];
+/* CANVAS */
+class Scene {
+    constructor(size = {width: 1200, height: 650}, id ) {
+        this.objects = [];
+        this.width = size.width;
+        this.height = size.height;
+        let canvas = document.createElement('canvas');
+        canvas.width = size.width;
+        canvas.height = size.height;
+        canvas.id = id;
+        document.body.appendChild(canvas);
+        this.context = canvas.getContext('2d');
+
+        canvas.onmousedown = this.myDown;
+        canvas.onmouseup = this.myUp;
+        canvas.onmousemove = this.myMove;
+
+    }
+
+    myMove(e){
+        console.log("move")
+        // if we're dragging || resizing anything...
+        if (dragok || dragL || dragR) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            let {x, isDragging} = control;
+            // current mouse position X
+            let {x: mx} = getMousePos(e);
+
+            // calculate the distance the mouse has moved since the last mousemove
+            let dx = mx - startX;
+
+            // move control that isDragging by the distance the mouse has moved since the last mousemove
+            if (isDragging) {
+                control.x += dx;
+            } else if (dragL) {
+                control.width += x - mx;
+                control.x = mx;
+            } else if (dragR) {
+                control.width = Math.abs(x - mx);
+            }
+
+            // redraw the scene
+            draw();
+
+            // reset the starting mouse position for the next mousemove
+            startX = mx;
         }
     }
-    return max;
-};
 
-const createCanvas = ({width, height}, id) => {
+    myDown(e){
+        console.log("down")
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        debugger
+
+        const {x, y, width, height} = control;
+        // left n right resizable areas
+        const leftSide = new Path2D();
+        const rightSide = new Path2D();
+
+        // current mouse position X, yScaled(1, -1);
+        const {x: mx, ySc: mySc} = getMousePos(e);
+        leftSide.rect(x, y, 10, height);
+        rightSide.rect(width + x - 10, y, 10, height);
+
+        // right
+        if (ctx.isPointInPath(rightSide, mx, mySc)) {
+            dragR = true;
+            control.isResizing = true;
+        }
+        // left
+        else if (ctx.isPointInPath(leftSide, mx, mySc)) {
+            dragL = true;
+            control.isResizing = true;
+        }
+        // drag
+        else if (mx > x && mx < x + width) {
+            dragok = true;
+            control.isDragging = true;
+        }
+
+        // save the current mouse position
+        startX = mx;
+    }
+
+    myUp(e){
+        e.preventDefault();
+        e.stopPropagation();
+
+        /*shut it down*/
+        dragok = dragL = dragR = false;
+        control.isDragging = control.isResizing = false;
+    }
+
+    addObject(object) {
+        this.objects.push(object);
+    }
+
+    render() {
+        this.context.clearRect(0, 0, this.context.canvas.width, this.context.canvas.height);
+        this.objects.forEach( o => {
+            o.draw(this.context);
+        });
+    }
+}
+
+/* UTILS */
+
+/*const createCanvas = ({width, height}, id) => {
     let canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     canvas.id = id;
     return canvas
-};
+};*/
 
 const objectWithoutKey = (object, key) => {
     const {[key]: deletedKey, ...otherKeys} = object;
@@ -174,15 +274,16 @@ const parseFeed = (feed) => {
     let graph = {};
     let cachedGraph = {};
 
-    let ratio = {};
     const control = new Control();
+
     const {colors, names, types, columns} = feed;
-    const {width} = canavsSize;
-    let {fill} = control;
+
 
     /*CANVAS*/
-    const canvas = createCanvas(canavsSize, 'mainImg');
-    let ctx = canvas.getContext("2d");
+    const canvas = new Scene(canavsSize, "mainImg");
+    /*const canvas = createCanvas(canavsSize, 'mainImg');
+    let ctx = canvas.getContext("2d");*/
+    let ctx = canvas.context;
     ctx.font = "18px Arial";
 
     // listen for mouse events
@@ -232,8 +333,6 @@ const parseFeed = (feed) => {
         const  { charts: clonedCharts } = cachedGraph;
         const  { charts, maxY } = graph;
         const tmp = clonedCharts[key];
-
-        debugger
 
         /*@TODO think of immutability like redux store*/
         if (charts[key]) {
@@ -306,7 +405,7 @@ const parseFeed = (feed) => {
 
     // create draggable && resizable rectangle
     const drawControl = () => {
-        ctx.fillStyle = fill;
+        ctx.fillStyle = "#d4f2f0";
         rect(control);
     };
 
@@ -330,79 +429,17 @@ const parseFeed = (feed) => {
 
     // handle mousedown events
     function myDown(e) {
-        e.preventDefault();
-        e.stopPropagation();
 
-        const {x, y, width, height} = control;
-        // left n right resizable areas
-        const leftSide = new Path2D();
-        const rightSide = new Path2D();
-
-        // current mouse position X, yScaled(1, -1);
-        const {x: mx, ySc: mySc} = getMousePos(e);
-        leftSide.rect(x, y, 10, height);
-        rightSide.rect(width + x - 10, y, 10, height);
-
-        // right
-        if (ctx.isPointInPath(rightSide, mx, mySc)) {
-            dragR = true;
-            control.isResizing = true;
-        }
-        // left
-        else if (ctx.isPointInPath(leftSide, mx, mySc)) {
-            dragL = true;
-            control.isResizing = true;
-        }
-        // drag
-        else if (mx > x && mx < x + width) {
-            dragok = true;
-            control.isDragging = true;
-        }
-
-        // save the current mouse position
-        startX = mx;
     }
 
     // handle mouseup events
     function myUp(e) {
-        e.preventDefault();
-        e.stopPropagation();
 
-        /*shut it down*/
-        dragok = dragL = dragR = false;
-        control.isDragging = control.isResizing = false;
     }
 
     // handle mouse moves
     function myMove(e) {
-        // if we're dragging || resizing anything...
-        if (dragok || dragL || dragR) {
-            e.preventDefault();
-            e.stopPropagation();
 
-            let {x, isDragging} = control;
-            // current mouse position X
-            let {x: mx} = getMousePos(e);
-
-            // calculate the distance the mouse has moved since the last mousemove
-            let dx = mx - startX;
-
-            // move control that isDragging by the distance the mouse has moved since the last mousemove
-            if (isDragging) {
-                control.x += dx;
-            } else if (dragL) {
-                control.width += x - mx;
-                control.x = mx;
-            } else if (dragR) {
-                control.width = Math.abs(x - mx);
-            }
-
-            // redraw the scene
-            draw();
-
-            // reset the starting mouse position for the next mousemove
-            startX = mx;
-        }
     }
 
     const drawButton = ({id, color, label, size: {width, height}}) => {
@@ -470,7 +507,7 @@ const parseFeed = (feed) => {
 
     /*DOM manipulations*/
     const end = (canvas) => {
-        main.appendChild(canvas);
+        //main.appendChild(canvas);
         Object.values(graph.button).forEach(drawButton);
     };
 
