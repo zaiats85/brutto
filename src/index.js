@@ -14,7 +14,7 @@ const AXISOffsetX = 40;
 const AXISOffsetY = 40;
 const CORRELATION = 0.9;
 const PRECISION = 3;
-const SEPARATE = 150;
+const SEPARATE = 170;
 
 /*TRANSPORT*/
 function getJson(method, url) {
@@ -100,7 +100,37 @@ class Chart {
         this.max = max;
     };
 
-    draw(){
+    static drawAxis(text, {x, y}, context){
+        context.save();
+        context.scale(1, -1);
+        context.fillStyle = "grey";
+        context.fillText(text, x, y);
+        context.restore();
+    };
+
+    // create single graph
+    draw({ color, x, y }, { rx, ry }, context, separate = 0){
+        if(separate){
+            context.lineWidth = 3;
+        } else {
+            context.lineWidth = 2;
+        }
+        context.beginPath();
+        context.strokeStyle = color;
+        context.lineJoin = 'round';
+
+        // LINES
+        for (let i = 0, k = x.length; i < k; i++) {
+            context.lineTo(i * rx, y[i] * ry + separate);
+            if (i % Math.round(k/YINTERVAL) === 0 && separate) {
+                let pos = {x: i * rx, y: -(separate - AXISOffsetY)};
+                Chart.drawAxis(getDate(x[i]), pos, context );
+            }
+        }
+        context.stroke();
+    };
+
+    drawHORA(){
         alert('hoorra');
     }
 }
@@ -358,14 +388,6 @@ class Scene {
 
     };
 
-    drawAxis(text, {x, y}){
-        this.context.save();
-        this.context.scale(1, -1);
-        this.context.fillStyle = "grey";
-        this.context.fillText(text, x, y);
-        this.context.restore();
-    };
-
     // get Mouse Position
     getMousePos(evt){
         return {
@@ -378,24 +400,6 @@ class Scene {
     // clear feed canvas
     clearCanvas({width, height} = canavsSize){
         this.context.clearRect(0, 0, width, height)
-    };
-
-    // create single graph
-    drawGraph({ color, x, y }, { rx, ry }, separate = 0){
-        this.context.lineWidth = 3;
-        this.context.beginPath();
-        this.context.strokeStyle = color;
-        this.context.lineJoin = 'round';
-
-        // LINES
-        for (let i = 0, k = x.length; i < k; i++) {
-            this.context.lineTo(i * rx, y[i] * ry + separate);
-            if (i % Math.round(k/YINTERVAL) === 0 && separate) {
-                let pos = {x: i * rx, y: -(separate - AXISOffsetY)};
-                this.drawAxis(getDate(x[i]), pos );
-            }
-        }
-        this.context.stroke();
     };
 
     drawButton({id, color, label, size: {width, height}}){
@@ -420,13 +424,20 @@ class Scene {
         if (key in charts) {
             //delete the graph
             this.graph.charts = objectWithoutKey(charts, key);
+            this.graph.projection = objectWithoutKey(charts, key);
+
             this.graph.maxY = remove(maxY, tmp.max);
+            this.graph.maxY2 = remove(maxY, tmp.max);
+
             this.graph.deleted[key] = tmp;
             evt.target.style.backgroundColor = 'white';
         } else {
             //add the graph
             this.graph.charts[key] = tmpDel;
+            this.graph.projection[key] = tmpDel;
+
             this.graph.maxY.push(tmpDel.max);
+            this.graph.maxY2.push(tmpDel.max);
             evt.target.style.backgroundColor = tmpDel.color;
             //redraw the scene
             this.draw()
@@ -448,14 +459,15 @@ class Scene {
         // reassign each time
         let {charts, ratio, projection} = this.graph;
         let {prx, pry} = ratio;
-        debugger
+
+
         Object.values(charts).forEach(chart => {
-            this.drawGraph(chart, ratio );
+            chart.draw(chart, ratio, this.context);
         });
 
         // draw main canvas
         Object.values(projection).forEach(projection => {
-            this.drawGraph(projection, {rx: prx, ry: pry} , SEPARATE);
+            projection.draw(projection, {rx: prx, ry: pry}, this.context, SEPARATE);
         });
 
         this.drawXLine();
