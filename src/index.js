@@ -70,16 +70,6 @@ class Chart {
     };
 }
 
-/*BUTTON*/
-class Button {
-    constructor( {color, id, label, size} ) {
-        this.color = color;
-        this.id = id;
-        this.label = label;
-        this.size = size;
-    };
-}
-
 /*GRAPH*/
 class Graph {
     constructor(num, { width, height }, graphHeight){
@@ -90,6 +80,7 @@ class Graph {
         this.width = width;
         this.height = height;
         this.graphHeight = graphHeight;
+        this.deleted = {};
     }
 
     setRatio(){
@@ -97,8 +88,8 @@ class Graph {
         this.ratio.rx = Graph.getRelationAtoB(this.width, this.num, 1 , PRECISION);
     };
 
-    addGraph(chart){
-        this.charts.push(new Chart(chart));
+    addGraph(key, chart){
+        this.charts[key] = new Chart(chart);
     };
 
     addMaxY(maxY){
@@ -138,7 +129,6 @@ class Graph {
 class Scene {
     constructor(size = {width: 1200, height: 650}, id ) {
         this.graph = {};
-        this.cachedGraph = {};
         this.control = {};
         this.buttons = [];
         this.projection = {};
@@ -258,7 +248,7 @@ class Scene {
     }
 
     addButton(button){
-        this.buttons.push(new Button(button))
+        this.buttons.push(button)
     };
 
     /*DRAWING*/
@@ -361,32 +351,38 @@ class Scene {
 
     drawButton({id, color, label, size: {width, height}}){
         const button = document.createElement('button');
-        button.id = id;
+        button.setAttribute("id", id);
         button.innerText = label;
         button.style.background = color;
         button.style.width = width;
         button.style.height = height;
-        button.onclick = this.toggleGraph;
+        button.onclick = this.toggleGraph.bind(this);
         controls.appendChild(button);
     };
 
     // delete graph from feed canvas
     toggleGraph(evt){
+
         const key = evt.target.id;
-        const  { charts: clonedCharts } = this.cachedGraph;
-        const  { charts, maxY } = this.graph;
-        const tmp = clonedCharts[key];
+
+        const  { charts, maxY, deleted } = this.graph;
+
+        debugger
+        const tmp = charts[key];
+        const tmpDel = deleted[key];
 
         /*@TODO think of immutability like redux store*/
-        if (charts[key]) {
+        if (key in charts) {
             //delete the graph
+            debugger
             this.graph.charts = objectWithoutKey(charts, key);
             this.graph.maxY = remove(maxY, tmp.max);
+            this.deleted[key] = tmp;
             evt.target.style.backgroundColor = 'white';
         } else {
             /*@TODO toggle buttons with SVG*/
             //add the graph
-            this.graph.charts[key] = tmp;
+            this.graph.charts[key] = tmpDel;
             this.graph.maxY.push(tmp.max);
             evt.target.style.backgroundColor = tmp.color;
         }
@@ -487,19 +483,14 @@ const parseFeed = (feed) => {
         let max = Math.max(...y);
 
         // create charts n buttons
-        graph.addGraph({ color: colors[key], name: names[key], type: types[key], x, y, max});
+        graph.addGraph(key, { color: colors[key], name: names[key], type: types[key], x, y, max});
         graph.addMaxY(max);
-
 
         canvas.addButton({color: colors[key], id: key, label: value, size: buttonSize });
     });
 
     graph.setRatio();
-
     canvas.setGraph(graph);
-
-    // interesting approach to manipulate scene redraw, at least for me
-    canvas.setCachedGraph();
 
     canvas.init();
 
