@@ -173,18 +173,35 @@ class Graph {
     addGraph(key, chart){
         this.charts[key] = new Chart(chart);
     };
+
+    addProjectionGraph(key, chart){
+        this.projection[key] = new Chart(chart);
+    };
     // create a projection
-    mutatedGraph(start, end, key, chart){
+    mutatedGraph({x, width}){
+
+        /*Detect control bar position*/
+        let start = (x <= 0) ? 0 : x;
+        let end = x + width;
+
         let x1 = Math.round(this.num * Graph.getRelationAtoB(end, this.width, 1));
         let x0 = Math.round(this.num * Graph.getRelationAtoB(start, this.width, 1));
 
-        chart.y = chart.y.slice(x0, x1);
-        chart.x = chart.x.slice(x0, x1);
-        chart.max = Math.max(...chart.y);
+        Object.entries(this.charts).forEach(([key, value]) => {
+            let projection = deepClone(value);
+            projection.y = value.y.slice(x0, x1);
+            projection.x = value.x.slice(x0, x1);
+            projection.max = Math.max(...value.y);
 
-        this.add("maxY2", chart.max);
-        this.set('num2', chart.x.length);
-        this.projection[key] = new Chart(chart);
+            this.add("maxY2", projection.max);
+
+            // create charts
+            this.addProjectionGraph(
+                key,
+                projection
+            );
+            this.set('num2', projection.x.length);
+        });
     }
 
     // get simple ratio A to B (with correlation);
@@ -224,7 +241,6 @@ class Scene {
         /*CONTEXT*/
         this.context = canvas.getContext('2d');
         this.context.font = "18px Arial";
-        this.rect = canvas.getBoundingClientRect();
 
         /* EVENTS */
         // listen for mouse events
@@ -243,10 +259,6 @@ class Scene {
         let x = this.columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
         this.graph.set('num', x.length);
 
-        const { x: xContr, width } = this.control;
-        let start = (xContr <= 0) ? 0 : xContr;
-        let end = xContr + width;
-
         Object.entries(this.names).forEach(([key, value]) => {
             // remove first index string type
             let y = this.columns.find(col => col.includes(key)).filter(item => !isNaN(item));
@@ -259,21 +271,12 @@ class Scene {
                 key,
                 chart
             );
-            // create charts projection
-            this.graph.mutatedGraph(
-                start,
-                end,
-                key,
-                chart
-            );
 
             this.graph.add("maxY", max);
             this.addButton({color: this.colors[key], id: key, label: value, size: buttonSize });
         });
 
-        this.graph.setRatio();
-
-        console.log(this);
+        this.graph.mutatedGraph(this.control);
     }
 
     /*EVENT CALLBACKS*/
@@ -300,6 +303,7 @@ class Scene {
                 this.control.width = Math.abs(x - mx);
             }
 
+            this.graph.mutatedGraph(this.control);
             // redraw the scene
             this.draw();
 
@@ -323,6 +327,10 @@ class Scene {
 
         leftSide.rect(x, y, 10, height);
         rightSide.rect(width + x - 10, y, 10, height);
+
+        this.context.fillStyle ="blue";
+        this.context.fillRect(x, y, 10, height);
+        this.context.fillRect(width + x - 10, y, 10, height);
 
         // right
         if (this.context.isPointInPath(rightSide, mx, mySc)) {
@@ -390,10 +398,12 @@ class Scene {
 
     // get Mouse Position
     getMousePos(evt){
+        let rect = this.el.getBoundingClientRect();
+        console.log(rect);
         return {
-            x: evt.clientX - this.rect.left,
-            y: evt.clientY - this.top,
-            ySc: this.rect.bottom - evt.clientY
+            x: evt.clientX - rect.left,
+            y: evt.clientY - rect.top,
+            ySc: rect.bottom - evt.clientY
         };
     };
 
@@ -443,7 +453,6 @@ class Scene {
             this.draw()
         }
 
-        this.graph.setRatio();
         //redraw the scene
         this.draw()
     };
@@ -456,10 +465,13 @@ class Scene {
         // draw control
         this.control.draw(this.context);
 
-        // reassign each time
+        // set all ratios
+        this.graph.setRatio();
+
+        this.drawXLine();
+
         let {charts, ratio, projection} = this.graph;
         let {prx, pry} = ratio;
-
 
         Object.values(charts).forEach(chart => {
             chart.draw(chart, ratio, this.context);
@@ -470,7 +482,7 @@ class Scene {
             projection.draw(projection, {rx: prx, ry: pry}, this.context, SEPARATE);
         });
 
-        this.drawXLine();
+
     };
 
     init() {
@@ -498,7 +510,6 @@ const parseFeed = (feed) => {
     canvas.setControl(new Control(controlSize));
 
     canvas.setInitialGraph();
-
     canvas.init();
 
 };
