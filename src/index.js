@@ -7,9 +7,6 @@ const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", 
 const canavsSize = {width: 1200, height: 650};
 const thumbSize = {width: 1200, height: 100};
 const controlSize = {width: 350, height: 100};
-
-const mainSize = {width: 1200, height: 500};
-
 const graphHeight = 500;
 const buttonSize = {width: "140px", height: "50px"};
 const YINTERVAL = 6;
@@ -85,15 +82,14 @@ class Button {
 
 /*GRAPH*/
 class Graph {
-    constructor(num, { width, height }){
+    constructor(num, { width, height }, graphHeight){
         this.num = num;
         this.charts = [];
         this.ratio = {};
-        this.button = [];
         this.maxY = [];
         this.width = width;
         this.height = height;
-        this.cachedGraph = [];
+        this.graphHeight = graphHeight;
     }
 
     setRatio(){
@@ -105,10 +101,6 @@ class Graph {
         this.charts.push(new Chart(chart));
     };
 
-    addButton(button){
-        this.button.push(new Button(button))
-    };
-
     addMaxY(maxY){
         this.maxY.push(maxY);
     };
@@ -118,64 +110,19 @@ class Graph {
         this.cachedGraph = deepClone(this);
     }
 
-    // delete graph from feed canvas
-    toggleGraph(evt){
-
-        const key = evt.target.id;
-        const  { charts: clonedCharts } = cachedGraph;
-        const  { charts, maxY } = graph;
-        const tmp = clonedCharts[key];
-
-        /*@TODO think of immutability like redux store*/
-        if (charts[key]) {
-            //delete the graph
-            graph.charts = objectWithoutKey(charts, key);
-            graph.maxY = remove(maxY, tmp.max);
-            evt.target.style.backgroundColor = 'white';
-        } else {
-            /*@TODO toggle buttons with SVG*/
-            //add the graph
-            graph.charts[key] = tmp;
-            graph.maxY.push(tmp.max);
-            evt.target.style.backgroundColor = tmp.color;
-        }
-        //redraw the scene
-        Canvas.draw()
-    };
-
     // create a projection
-    mutateGraph(start, end){
-
-
+    mutateGraph(start, end, chart){
         let x1 = Math.round(this.num * Graph.getRelationAtoB(end, this.width, 1));
         let x0 = Math.round(this.num * Graph.getRelationAtoB(start, this.width, 1));
 
-        Object.values(this.charts).forEach(chart => {
+        let newY = deepClone(chart.y).splice(x0, x1);
+        let newX = deepClone(chart.x).splice(x0, x1);
+        let maxNewY = Math.max(...newY);
 
-            let newY = deepClone(chart.y).splice(x0, x1);
-            let newX = deepClone(chart.x).splice(x0, x1);
+        let rel = Graph.getRelationAtoB(this.graphHeight, maxNewY, CORRELATION, PRECISION);
 
-            let maxNewY = Math.max(...newY);
-
-            new Chart(color, name, type, newY, maxNewY);
-            //ratio.rY.push(getRatioAtoB(graphHeight, maxNewY, CORRELATION, PRECISION));
-
-        });
-
+        return {newY, newX, rel}
     }
-
-    drawButton({id, color, label, size: {width, height}}){
-        let button = document.createElement('button');
-        button.id = id;
-        button.innerText = label;
-        button.style.background = color;
-        button.style.width = width;
-        button.style.height = height;
-
-        button.addEventListener("click", this.toggleGraph);
-        controls.appendChild(button);
-
-    };
 
     // get simple ratio A to B (with correlation);
     static getRelationAtoB(a, b, c = CORRELATION, precise = false){
@@ -191,17 +138,20 @@ class Graph {
 class Scene {
     constructor(size = {width: 1200, height: 650}, id ) {
         this.graph = {};
+        this.cachedGraph = {};
         this.control = {};
+        this.buttons = [];
         this.projection = {};
 
         this.width = size.width;
         this.height = size.height;
         let canvas = document.createElement('canvas');
-        canvas.width = size.width;
-        canvas.height = size.height;
-        canvas.id = id;
+            canvas.width = size.width;
+            canvas.height = size.height;
+            canvas.id = id;
 
-        document.body.appendChild(canvas);
+        this.el = canvas;
+
         this.context = canvas.getContext('2d');
         this.context.font = "18px Arial";
         this.rect = canvas.getBoundingClientRect();
@@ -251,7 +201,6 @@ class Scene {
     }
 
     myDown(e){
-
         e.preventDefault();
         e.stopPropagation();
 
@@ -304,9 +253,13 @@ class Scene {
         this.graph = graph;
     }
 
-    cloneProjection(graph){
-        this.projection = deepClone(this.graph);
+    setCachedGraph(){
+        this.cachedGraph = deepClone(this.graph);
     }
+
+    addButton(button){
+        this.buttons.push(new Button(button))
+    };
 
     /*DRAWING*/
     drawXLine(){
@@ -383,13 +336,13 @@ class Scene {
             this.context.lineTo(i * rx, y[i] * ry + separate);
             if (i % Math.round(k/YINTERVAL) === 0 && separate) {
                 let pos = {x: i * rx, y: -(separate - AXISOffsetY)};
-                drawAxis(getDate(x[i]), pos );
+                this.drawAxis(getDate(x[i]), pos );
             }
         }
         this.context.stroke();
     };
 
-    formProjection(){
+    formProjection(chart){
 
         let start, end;
         const { x, width } = this.control;
@@ -402,10 +355,44 @@ class Scene {
             end = width;
         }
 
-        this.graph.mutateGraph(start, end);
-
+        let foo = this.graph.mutateGraph(start, end, chart);
 
     }
+
+    drawButton({id, color, label, size: {width, height}}){
+        const button = document.createElement('button');
+        button.id = id;
+        button.innerText = label;
+        button.style.background = color;
+        button.style.width = width;
+        button.style.height = height;
+        button.onclick = this.toggleGraph;
+        controls.appendChild(button);
+    };
+
+    // delete graph from feed canvas
+    toggleGraph(evt){
+        const key = evt.target.id;
+        const  { charts: clonedCharts } = this.cachedGraph;
+        const  { charts, maxY } = this.graph;
+        const tmp = clonedCharts[key];
+
+        /*@TODO think of immutability like redux store*/
+        if (charts[key]) {
+            //delete the graph
+            this.graph.charts = objectWithoutKey(charts, key);
+            this.graph.maxY = remove(maxY, tmp.max);
+            evt.target.style.backgroundColor = 'white';
+        } else {
+            /*@TODO toggle buttons with SVG*/
+            //add the graph
+            this.graph.charts[key] = tmp;
+            this.graph.maxY.push(tmp.max);
+            evt.target.style.backgroundColor = tmp.color;
+        }
+        //redraw the scene
+        this.draw()
+    };
 
     /*Canvas manipulations*/
     draw(){
@@ -424,7 +411,7 @@ class Scene {
 
         charts.forEach(chart => {
             this.drawGraph(chart, ratio );
-            this.formProjection();
+            //let {projection, ration} = this.formProjection(chart);
         });
 
         // draw main canvas
@@ -445,14 +432,13 @@ class Scene {
 
     };
 
-    render() {
-
-
+    init() {
+        main.appendChild(this.el);
+        this.buttons.forEach(this.drawButton.bind(this));
     }
 }
 
 /* UTILS */
-
 const objectWithoutKey = (object, key) => {
     const {[key]: deletedKey, ...otherKeys} = object;
     return otherKeys;
@@ -482,44 +468,47 @@ init()
     });
 
 const parseFeed = (feed) => {
-    let cachedGraph = {};
-    const {colors, names, types, columns} = feed;
 
+    const {colors, names, types, columns} = feed;
 
     /*CANVAS*/
     const canvas = new Scene(canavsSize, "mainImg");
     canvas.setControl(new Control(controlSize));
 
-    const init = () => {
+    // Form Graphs
+    let x = columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
 
-        // Form Graphs
-        let x = columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
+    /*number of elements to present*/
+    let graph = new Graph(x.length, thumbSize, graphHeight);
 
-        /*number of elements to present*/
-        let graph = new Graph(x.length, thumbSize);
+    Object.entries(names).forEach(([key, value]) => {
+        // remove first index string type
+        let y = columns.find(col => col.includes(key)).filter(item => !isNaN(item));
+        let max = Math.max(...y);
 
-        Object.entries(names).forEach(([key, value]) => {
-            // remove first index string type
-            let y = columns.find(col => col.includes(key)).filter(item => !isNaN(item));
-            let max = Math.max(...y);
+        // create charts n buttons
+        graph.addGraph({ color: colors[key], name: names[key], type: types[key], x, y, max});
+        graph.addMaxY(max);
 
-            // create charts n buttons
-            graph.addGraph({ color: colors[key], name: names[key], type: types[key], x, y, max});
-            graph.addButton({color: colors[key], id: key, label: value, size: buttonSize });
-            graph.addMaxY(max);
-        });
-        graph.setRatio();
 
-        // interesting approach to manipulate scene redraw, at least for me
-        graph.setCachedGraph();
+        canvas.addButton({color: colors[key], id: key, label: value, size: buttonSize });
+    });
 
-        canvas.setGraph(graph);
-        canvas.cloneProjection();
+    graph.setRatio();
 
-        canvas.draw();
+    canvas.setGraph(graph);
 
-    };
+    // interesting approach to manipulate scene redraw, at least for me
+    canvas.setCachedGraph();
 
-    init();
+    canvas.init();
+
+    console.log(canvas);
+
+    canvas.draw();
+
+
+
+
 
 };
