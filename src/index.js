@@ -92,8 +92,8 @@ class Graph {
     }
 
     setRatio(){
-        this.ratio.rx = Graph.getRelationAtoB(this.height, Math.max(...this.maxY), CORRELATION, PRECISION);
-        this.ratio.ry = Graph.getRelationAtoB(this.width, this.num, 1 , PRECISION);
+        this.ratio.ry = Graph.getRelationAtoB(this.height, Math.max(...this.maxY), CORRELATION, PRECISION);
+        this.ratio.rx = Graph.getRelationAtoB(this.width, this.num, 1 , PRECISION);
     };
 
     addGraph(chart){
@@ -171,14 +171,11 @@ init()
     });
 
 const parseFeed = (feed) => {
-    let graphs = {
-        x: [],
-        charts: {},
-        maxY: []
-    };
+    let graph = {};
+    let cachedGraph = {};
+
     let ratio = {};
     const control = new Control();
-    let cachedGraph = {};
     let buttons = {};
     const {colors, names, types, columns} = feed;
     const {width} = canavsSize;
@@ -204,8 +201,7 @@ const parseFeed = (feed) => {
         let x = columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
 
         /*number of elements to present*/
-        let num  = x.length;
-        let graph = new Graph(num, thumbSize);
+        graph = new Graph(x.length, thumbSize);
 
         Object.entries(names).forEach(([key, value]) => {
             // remove first index string type
@@ -223,7 +219,7 @@ const parseFeed = (feed) => {
         // interesting approach to manipulate scene redraw, at least for me
         cachedGraph = deepClone(graph);
 
-        draw(graph);
+        draw();
         end(canvas);
     };
 
@@ -263,7 +259,6 @@ const parseFeed = (feed) => {
         ctx.lineJoin = 'round';
         // LINES
 
-        debugger
         for (let i = 0, k = x.length; i < k; i++) {
             ctx.lineTo(i * rx, y[i] * ry + separate);
             if (i % Math.round(k/YINTERVAL) === 0 && separate) {
@@ -426,7 +421,7 @@ const parseFeed = (feed) => {
     };
 
     /*Canvas manipulations*/
-    const draw = (graph) => {
+    const draw = () => {
 
         clearCanvas(canavsSize);
 
@@ -434,13 +429,9 @@ const parseFeed = (feed) => {
         drawControl();
 
         // reassign each time
-        let {x: xpos, width: conWidth} = control;
         let {charts, ratio} = graph;
-        ratio.rY = [];
 
         // draw main canvas
-
-        debugger
         Object.values(charts).forEach(chart => {
             drawGraph(chart, ratio );
         });
