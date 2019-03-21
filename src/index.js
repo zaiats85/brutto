@@ -80,11 +80,16 @@ class Control {
         context.rect(x, y, width, height);
         context.closePath();
         context.fill();
+
+        // set draggable edges color
+        context.fillStyle ="indigo";
+        context.fillRect(x, y, 10, height);
+        context.fillRect(width + x - 10, y, 10, height);
     };
 
     // create draggable && resizable rectangle
     draw(context){
-        context.fillStyle = "#d4f2f0";
+        context.fillStyle = this.fill;
         this.rectangle(this, context);
     };
 }
@@ -129,10 +134,6 @@ class Chart {
         }
         context.stroke();
     };
-
-    drawHORA(){
-        alert('hoorra');
-    }
 }
 
 /*GRAPH*/
@@ -187,11 +188,14 @@ class Graph {
         let x1 = Math.round(this.num * Graph.getRelationAtoB(end, this.width, 1));
         let x0 = Math.round(this.num * Graph.getRelationAtoB(start, this.width, 1));
 
+        // reassing each time
+        this.maxY2.length = 0;
+
         Object.entries(this.charts).forEach(([key, value]) => {
             let projection = deepClone(value);
             projection.y = value.y.slice(x0, x1);
             projection.x = value.x.slice(x0, x1);
-            projection.max = Math.max(...value.y);
+            projection.max = Math.max(...projection.y);
 
             this.add("maxY2", projection.max);
 
@@ -202,6 +206,7 @@ class Graph {
             );
             this.set('num2', projection.x.length);
         });
+
     }
 
     // get simple ratio A to B (with correlation);
@@ -328,10 +333,6 @@ class Scene {
         leftSide.rect(x, y, 10, height);
         rightSide.rect(width + x - 10, y, 10, height);
 
-        this.context.fillStyle ="blue";
-        this.context.fillRect(x, y, 10, height);
-        this.context.fillRect(width + x - 10, y, 10, height);
-
         // right
         if (this.context.isPointInPath(rightSide, mx, mySc)) {
             this.dragR = true;
@@ -374,12 +375,13 @@ class Scene {
         this.context.lineWidth = 1;
         this.context.strokeStyle = 'grey';
         this.context.fillStyle = 'grey';
-        let gr = this.graph.ratio.ry;
+        let { pry } = this.graph.ratio;
+
         /*draw xAxis*/
         for (let j = 0; j < YINTERVAL; j++) {
             this.context.save();
             let y = CORRELATION * j * this.graph.graphHeight / YINTERVAL;
-            let val = parseInt(y / gr).toString();
+            let val = parseInt(y / pry).toString();
             let dY = y + SEPARATE;
 
             /*draw xAxis*/
@@ -399,7 +401,6 @@ class Scene {
     // get Mouse Position
     getMousePos(evt){
         let rect = this.el.getBoundingClientRect();
-        console.log(rect);
         return {
             x: evt.clientX - rect.left,
             y: evt.clientY - rect.top,
