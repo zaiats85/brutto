@@ -69,7 +69,7 @@ class Control {
         this.y = 8;
         this.width = width;
         this.height = height;
-        this.fill = "#d4f2f0";
+        this.fill = "white";
         this.isDragging = false;
         this.isResizing = false;
     };
@@ -82,9 +82,13 @@ class Control {
         context.fill();
 
         // set draggable edges color
-        context.fillStyle ="indigo";
+        context.fillStyle ="grey";
         context.fillRect(x, y, 10, height);
         context.fillRect(width + x - 10, y, 10, height);
+
+        context.fillRect(x, y, width, 3);
+        context.fillRect(x, y + height, width, 3);
+
     };
 
     // create draggable && resizable rectangle
@@ -115,11 +119,7 @@ class Chart {
 
     // create single graph
     draw({ color, x, y }, { rx, ry }, context, separate = 0){
-        if(separate){
-            context.lineWidth = 3;
-        } else {
-            context.lineWidth = 2;
-        }
+        context.lineWidth = separate ? 3 : 2;
         context.beginPath();
         context.strokeStyle = color;
         context.lineJoin = 'round';
@@ -473,6 +473,8 @@ class Scene {
     draw(){
 
         this.clearCanvas();
+
+
 
         // draw control
         this.control.draw(this.context);
