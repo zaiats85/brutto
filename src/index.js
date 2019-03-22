@@ -79,7 +79,6 @@ class Control {
         const { x, y, width, height } = this;
 
         context.fillStyle ="#f5f5f5";
-        console.log(x);
         context.fillRect(0, y, context.canvas.width, height);
 
         context.beginPath();
@@ -172,7 +171,6 @@ class Graph {
         this.ratio.ry = Graph.getRelationAtoB(this.height, Math.max(...this.maxY), CORRELATION, PRECISION);
         this.ratio.rx = Graph.getRelationAtoB(this.width, this.num, 1 , PRECISION);
         this.ratio.prx = Graph.getRelationAtoB(this.width, this.num2, 1, PRECISION);
-        console.log(this);
         this.ratio.pry = Graph.getRelationAtoB(this.graphHeight, Math.max(...this.maxY2), CORRELATION, PRECISION);
     };
 
@@ -231,6 +229,9 @@ class Scene {
         this.control = {};
         this.buttons = [];
 
+        /*ANIMATION*/
+        this.animateContinue = false;
+
         /*FEED*/
         this.colors = colors;
         this.names = names;
@@ -262,6 +263,8 @@ class Scene {
         canvas.onmousedown = this.myDown.bind(this);
         canvas.onmouseup = this.myUp.bind(this);
         canvas.onmousemove = this.myMove.bind(this);
+        this.draw = this.draw.bind(this);
+
     }
 
     setInitialGraph(){
@@ -314,8 +317,10 @@ class Scene {
             }
 
             this.graph.mutatedGraph(this.control);
+
             // redraw the scene
-            this.draw();
+            this.animateContinue = true;
+            requestAnimationFrame(() => { this.draw() } );
 
             // reset the starting mouse position for the next mousemove
             this.startX = mx;
@@ -361,10 +366,10 @@ class Scene {
     myUp(e){
         e.preventDefault();
         e.stopPropagation();
-
         /*shut it down*/
         this.dragok = this.dragL = this.dragR = false;
         this.control.isDragging = this.control.isResizing = false;
+        this.animateContinue = false;
     }
 
     setControl(control) {
@@ -442,7 +447,6 @@ class Scene {
 
         /*@TODO toggle buttons with SVG*/
         if (key in charts) {
-            console.log('delete');
             //delete the graph
             this.graph.charts = objectWithoutKey(charts, key);
             this.graph.projection = objectWithoutKey(charts, key);
@@ -455,7 +459,6 @@ class Scene {
 
             evt.target.style.backgroundColor = 'white';
         } else {
-            console.log('add');
             //add the graph
             this.graph.charts[key] = tmpCharDel;
             this.graph.projection[key] = tmpProDel;
@@ -463,16 +466,15 @@ class Scene {
             this.graph.maxY.push(tmpCharDel.max);
             this.graph.maxY2.push(tmpProDel.max);
             evt.target.style.backgroundColor = tmpCharDel.color;
-
         }
 
         //redraw the scene
-        this.draw()
+        this.animateContinue = true;
+        this.animate();
     };
 
     /*Canvas manipulations*/
     draw(){
-
         this.clearCanvas();
 
         // draw control
@@ -493,6 +495,13 @@ class Scene {
         Object.values(projection).forEach(projection => {
             projection.draw(projection, {rx: prx, ry: pry}, this.context, SEPARATE);
         });
+
+        console.log('running');
+        /*Smooth animation*/
+        if(this.animateContinue){
+            console.log('STOP');
+            requestAnimationFrame(this.draw)
+        }
 
     };
 
