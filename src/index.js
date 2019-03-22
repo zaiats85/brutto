@@ -74,27 +74,28 @@ class Control {
         this.isResizing = false;
     };
 
-    // draw a  rect
-    rectangle ({x, y, width, height}, context){
+    // create draggable && resizable rectangle
+    draw(context){
+        const { x, y, width, height } = this;
+
+        context.fillStyle ="#f5f5f5";
+        console.log(x);
+        context.fillRect(0, y, context.canvas.width, height);
+
         context.beginPath();
+        context.fillStyle ="white";
         context.rect(x, y, width, height);
         context.closePath();
         context.fill();
 
         // set draggable edges color
-        context.fillStyle ="grey";
+        context.fillStyle ="lightgrey";
         context.fillRect(x, y, 10, height);
         context.fillRect(width + x - 10, y, 10, height);
 
         context.fillRect(x, y, width, 3);
-        context.fillRect(x, y + height, width, 3);
+        context.fillRect(x, y + height, width, -3);
 
-    };
-
-    // create draggable && resizable rectangle
-    draw(context){
-        context.fillStyle = this.fill;
-        this.rectangle(this, context);
     };
 }
 
@@ -473,8 +474,6 @@ class Scene {
     draw(){
 
         this.clearCanvas();
-
-
 
         // draw control
         this.control.draw(this.context);
