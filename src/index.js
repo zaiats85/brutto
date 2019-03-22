@@ -143,7 +143,10 @@ class Graph {
         this.num2 = 0;
         this.charts = {};
         this.projection = {};
-        this.deleted = {};
+        this.deleted = {
+            projection: {},
+            charts: {}
+        };
         this.ratio = {};
         this.maxY = [];
         this.maxY2 = [];
@@ -168,6 +171,7 @@ class Graph {
         this.ratio.ry = Graph.getRelationAtoB(this.height, Math.max(...this.maxY), CORRELATION, PRECISION);
         this.ratio.rx = Graph.getRelationAtoB(this.width, this.num, 1 , PRECISION);
         this.ratio.prx = Graph.getRelationAtoB(this.width, this.num2, 1, PRECISION);
+        console.log(this);
         this.ratio.pry = Graph.getRelationAtoB(this.graphHeight, Math.max(...this.maxY2), CORRELATION, PRECISION);
     };
 
@@ -427,31 +431,38 @@ class Scene {
     // delete graph from feed canvas
     toggleGraph(evt){
         const key = evt.target.id;
-        const { charts, maxY, deleted } = this.graph;
-        const tmp = charts[key];
-        const tmpDel = deleted[key];
+        const { charts, projection, maxY, deleted, maxY2 } = this.graph;
+
+        const tmpChar = charts[key];
+        const tmpPro = projection[key];
+
+        const tmpCharDel = deleted.charts[key];
+        const tmpProDel = deleted.projection[key];
 
         /*@TODO toggle buttons with SVG*/
         if (key in charts) {
+            console.log('delete');
             //delete the graph
             this.graph.charts = objectWithoutKey(charts, key);
             this.graph.projection = objectWithoutKey(charts, key);
 
-            this.graph.maxY = remove(maxY, tmp.max);
-            this.graph.maxY2 = remove(maxY, tmp.max);
+            this.graph.maxY = remove(maxY, tmpChar.max);
+            this.graph.maxY2 = remove(maxY2, tmpPro.max);
 
-            this.graph.deleted[key] = tmp;
+            this.graph.deleted.charts[key] = tmpChar;
+            this.graph.deleted.projection[key] = tmpPro;
+
             evt.target.style.backgroundColor = 'white';
         } else {
+            console.log('add');
             //add the graph
-            this.graph.charts[key] = tmpDel;
-            this.graph.projection[key] = tmpDel;
+            this.graph.charts[key] = tmpCharDel;
+            this.graph.projection[key] = tmpProDel;
 
-            this.graph.maxY.push(tmpDel.max);
-            this.graph.maxY2.push(tmpDel.max);
-            evt.target.style.backgroundColor = tmpDel.color;
-            //redraw the scene
-            this.draw()
+            this.graph.maxY.push(tmpCharDel.max);
+            this.graph.maxY2.push(tmpProDel.max);
+            evt.target.style.backgroundColor = tmpCharDel.color;
+
         }
 
         //redraw the scene
@@ -471,18 +482,16 @@ class Scene {
 
         this.drawXLine();
 
-        let {charts, ratio, projection} = this.graph;
-        let {prx, pry} = ratio;
+        let {charts, ratio: {prx, pry, rx, ry}, projection} = this.graph;
 
         Object.values(charts).forEach(chart => {
-            chart.draw(chart, ratio, this.context);
+            chart.draw(chart, {rx, ry}, this.context);
         });
 
         // draw main canvas
         Object.values(projection).forEach(projection => {
             projection.draw(projection, {rx: prx, ry: pry}, this.context, SEPARATE);
         });
-
 
     };
 
@@ -509,8 +518,6 @@ const parseFeed = (feed) => {
     /*CANVAS*/
     const canvas = new Scene(canavsSize, "mainImg", feed);
     canvas.setControl(new Control(controlSize));
-
     canvas.setInitialGraph();
     canvas.init();
-
 };
