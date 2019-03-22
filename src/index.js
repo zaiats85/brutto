@@ -338,7 +338,10 @@ class Scene {
         const rightSide = new Path2D();
 
         // current mouse position X, yScaled(1, -1);
-        const {x: mx, ySc: mySc} = this.getMousePos(e);
+        const {x: mx, ySc: mySc, y: my} = this.getMousePos(e);
+
+        console.log();
+
 
         leftSide.rect(x, y, 10, height);
         rightSide.rect(width + x - 10, y, 10, height);
@@ -354,7 +357,7 @@ class Scene {
             this.control.isResizing = true;
         }
         // drag
-        else if (mx > x && mx < x + width) {
+        else if (mx > x && mx < x + width && my && mySc-height < y) {
             this.dragok = true;
             this.control.isDragging = true;
         }
@@ -470,7 +473,7 @@ class Scene {
 
         //redraw the scene
         this.animateContinue = true;
-        this.animate();
+        this.draw();
     };
 
     /*Canvas manipulations*/
