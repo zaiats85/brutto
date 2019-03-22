@@ -143,10 +143,7 @@ class Graph {
         this.num2 = 0;
         this.charts = {};
         this.projection = {};
-        this.deleted = {
-            projection: {},
-            charts: {}
-        };
+        this.deleted = {};
         this.ratio = {};
         this.maxY = [];
         this.maxY2 = [];
@@ -193,6 +190,7 @@ class Graph {
 
         // reassing each time
         this.maxY2.length = 0;
+        this.projection = {};
 
         Object.entries(this.charts).forEach(([key, value]) => {
             let projection = deepClone(value);
@@ -440,40 +438,31 @@ class Scene {
     // delete graph from feed canvas
     toggleGraph(evt){
         const key = evt.target.id;
-        const { charts, projection, maxY, deleted, maxY2 } = this.graph;
-
-        const tmpChar = charts[key];
-        const tmpPro = projection[key];
-
-        const tmpCharDel = deleted.charts[key];
-        const tmpProDel = deleted.projection[key];
+        const { charts, maxY, deleted } = this.graph;
+        const tmp = charts[key];
+        const tmpDel = deleted[key];
 
         /*@TODO toggle buttons with SVG*/
         if (key in charts) {
             //delete the graph
             this.graph.charts = objectWithoutKey(charts, key);
-            this.graph.projection = objectWithoutKey(charts, key);
-
-            this.graph.maxY = remove(maxY, tmpChar.max);
-            this.graph.maxY2 = remove(maxY2, tmpPro.max);
-
-            this.graph.deleted.charts[key] = tmpChar;
-            this.graph.deleted.projection[key] = tmpPro;
-
+            this.graph.maxY = remove(maxY, tmp.max);
+            this.graph.deleted[key] = tmp;
             evt.target.style.backgroundColor = 'white';
         } else {
             //add the graph
-            this.graph.charts[key] = tmpCharDel;
-            this.graph.projection[key] = tmpProDel;
-
-            this.graph.maxY.push(tmpCharDel.max);
-            this.graph.maxY2.push(tmpProDel.max);
-            evt.target.style.backgroundColor = tmpCharDel.color;
+            this.graph.charts[key] = tmpDel;
+            this.graph.maxY.push(tmpDel.max);
+            evt.target.style.backgroundColor = tmpDel.color;
         }
+
+        this.graph.mutatedGraph(this.control);
 
         //redraw the scene
         this.animateContinue = true;
         this.draw();
+        this.animateContinue = false;
+
     };
 
     /*Canvas manipulations*/
