@@ -9,7 +9,7 @@ const thumbSize = {width: 1200, height: 100};
 const controlSize = {width: 350, height: 100};
 const PROJECTION_HEIGHT = 500;
 const buttonSize = {width: "140px", height: "50px"};
-const YINTERVAL = 5;
+const YINTERVAL = 6;
 const AXISOffsetX = 40;
 const AXISOffsetY = 40;
 const CORRELATION = 0.85;
@@ -109,6 +109,20 @@ class Chart {
         this.max = max;
     };
 
+    static drawXLine(context, val, y){
+        /*draw xAxis*/
+        context.beginPath();
+        context.moveTo(AXISOffsetX, y);
+        context.lineTo(context.canvas.width - AXISOffsetX, y);
+        context.scale(1, -1);
+        context.fillStyle = 'grey';
+        context.fillText(val, AXISOffsetX, -(y + 10));
+        context.lineWidth = 1;
+        context.strokeStyle = 'grey';
+        context.stroke();
+
+    };
+
     static drawAxis(text, {x, y}, context){
         context.save();
         context.scale(1, -1);
@@ -128,12 +142,27 @@ class Chart {
         // LINES
         for (let i = 0, k = x.length; i < k; i++) {
             context.lineTo(i * rx, y[i] * ry + separate);
+            // AXIS
             if (i % Math.round(k/YINTERVAL) === 0 && separate) {
                 let pos = {x: i * rx, y: -(separate - AXISOffsetY)};
                 Chart.drawAxis(getDate(x[i]), pos, context );
             }
+
         }
+
         context.stroke();
+        let j = 0;
+        while(j < YINTERVAL && separate){
+            context.save();
+            let y = j * PROJECTION_HEIGHT/YINTERVAL;
+            let val = parseInt(y / ry).toString();
+            let dY = y + SEPARATE;
+
+            Chart.drawXLine(context, val, dY);
+            context.restore();
+            j++;
+        }
+
     };
 }
 
@@ -384,28 +413,6 @@ class Scene {
     };
 
     /*DRAWING*/
-    drawXLine(){
-        this.context.lineWidth = 1;
-        this.context.strokeStyle = 'grey';
-        this.context.fillStyle = 'grey';
-
-
-
-        /*draw xAxis*/
-        for (let j = 0; j < YINTERVAL; j++) {
-            this.context.save();
-
-            let y = (this.graph.graphHeight * j)/YINTERVAL;
-            let val = this.graph.ratio.pry
-
-            console.log(val);
-
-
-            this.context.stroke();
-            this.context.restore();
-        }
-
-    };
 
     // get Mouse Position
     getMousePos(evt){
@@ -467,7 +474,6 @@ class Scene {
         this.clearCanvas();
         // draw control
         this.control.draw(this.context);
-        this.drawXLine();
 
         let {charts, ratio: {prx, pry, rx, ry}, projection} = this.graph;
         let buffer = Number(Math.abs(((pry-this.buffer)/15)).toPrecision(5));
