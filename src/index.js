@@ -475,16 +475,17 @@ class Scene {
 
         /*Smooth animation*/
         let {charts, ratio: {prx, pry, rx, ry}, projection} = this.graph;
+        let buffer = Number(Math.abs(((pry-this.buffer)/15)).toPrecision(5));
 
         // what to do, my son says i m an idiot. little genius
+        /*precision. svolochi :)*/
         if(this.koef <= pry){
-            this.koef += Number(Math.abs(((pry-this.buffer)/15)).toPrecision(3));
-            console.log(this.koef);
+            this.koef += buffer;
             if(this.koef > pry){
                 this.animateContinue = false;
             }
         } else {
-            this.koef -= Number(Math.abs(((pry-this.buffer)/15)).toPrecision(3));
+            this.koef -= buffer;
             if(this.koef < pry){
                 this.animateContinue = false;
             }
