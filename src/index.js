@@ -232,7 +232,7 @@ class Scene {
         this.animateContinue = true;
         // set initial coef
         this.koef = 0;
-        this.koef2 = 0;
+        this.buffer = 0;
 
         /*FEED*/
         this.colors = colors;
@@ -478,12 +478,13 @@ class Scene {
 
         // what to do, my son says i m an idiot. little genius
         if(this.koef <= pry){
-            this.koef += Number((pry/14).toPrecision(3));
+            this.koef += Number(Math.abs(((pry-this.buffer)/15)).toPrecision(3));
+            console.log(this.koef);
             if(this.koef > pry){
                 this.animateContinue = false;
             }
         } else {
-            this.koef -= Number((pry/5).toPrecision(3));
+            this.koef -= Number(Math.abs(((pry-this.buffer)/15)).toPrecision(3));
             if(this.koef < pry){
                 this.animateContinue = false;
             }
@@ -504,6 +505,7 @@ class Scene {
         } else {
             console.log("STOP");
             this.koef = pry;
+            this.buffer = pry;
         }
     };
 
