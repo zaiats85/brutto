@@ -12,7 +12,7 @@ const buttonSize = {width: "140px", height: "50px"};
 const YINTERVAL = 6;
 const AXISOffsetX = 40;
 const AXISOffsetY = 40;
-const CORRELATION = 0.9;
+const CORRELATION = 0.85;
 const PRECISION = 3;
 const SEPARATE = 170;
 
@@ -79,7 +79,6 @@ class Control {
         const { x, y, width, height } = this;
 
         context.fillStyle ="#f5f5f5";
-        console.log(x);
         context.fillRect(0, y, context.canvas.width, height);
 
         context.beginPath();
@@ -119,7 +118,8 @@ class Chart {
     };
 
     // create single graph
-    draw({ color, x, y }, { rx, ry }, context, separate = 0){
+    draw({ rx, ry }, context, separate = 0){
+        let { color, x, y } = this;
         context.lineWidth = separate ? 3 : 2;
         context.beginPath();
         context.strokeStyle = color;
@@ -144,10 +144,7 @@ class Graph {
         this.num2 = 0;
         this.charts = {};
         this.projection = {};
-        this.deleted = {
-            projection: {},
-            charts: {}
-        };
+        this.deleted = {};
         this.ratio = {};
         this.maxY = [];
         this.maxY2 = [];
@@ -172,7 +169,6 @@ class Graph {
         this.ratio.ry = Graph.getRelationAtoB(this.height, Math.max(...this.maxY), CORRELATION, PRECISION);
         this.ratio.rx = Graph.getRelationAtoB(this.width, this.num, 1 , PRECISION);
         this.ratio.prx = Graph.getRelationAtoB(this.width, this.num2, 1, PRECISION);
-        console.log(this);
         this.ratio.pry = Graph.getRelationAtoB(this.graphHeight, Math.max(...this.maxY2), CORRELATION, PRECISION);
     };
 
@@ -195,6 +191,7 @@ class Graph {
 
         // reassing each time
         this.maxY2.length = 0;
+        this.projection = {};
 
         Object.entries(this.charts).forEach(([key, value]) => {
             let projection = deepClone(value);
@@ -217,7 +214,7 @@ class Graph {
     // get simple ratio A to B (with correlation);
     static getRelationAtoB(a, b, c = CORRELATION, precise = false){
         if(precise){
-            return ((a / b) * c).toPrecision(PRECISION);
+            return +((a / b) * c).toPrecision(PRECISION);
         } else {
             return +(a / b) * c
         }
@@ -231,6 +228,12 @@ class Scene {
         this.control = {};
         this.buttons = [];
 
+        /*ANIMATION*/
+        this.animateContinue = true;
+        // set initial coef
+        this.koef = 0;
+        this.buffer = 0;
+
         /*FEED*/
         this.colors = colors;
         this.names = names;
@@ -238,9 +241,6 @@ class Scene {
         this.columns = columns;
 
         /*SCENE (whole canvas)*/
-        this.width = size.width;
-        this.height = size.height;
-
         let canvas = document.createElement('canvas');
             canvas.width = size.width;
             canvas.height = size.height;
@@ -262,6 +262,8 @@ class Scene {
         canvas.onmousedown = this.myDown.bind(this);
         canvas.onmouseup = this.myUp.bind(this);
         canvas.onmousemove = this.myMove.bind(this);
+        this.draw = this.draw.bind(this);
+
     }
 
     setInitialGraph(){
@@ -314,8 +316,11 @@ class Scene {
             }
 
             this.graph.mutatedGraph(this.control);
+
             // redraw the scene
-            this.draw();
+            this.graph.setRatio();
+            this.animateContinue = true;
+            requestAnimationFrame(() => { this.draw() } );
 
             // reset the starting mouse position for the next mousemove
             this.startX = mx;
@@ -333,7 +338,10 @@ class Scene {
         const rightSide = new Path2D();
 
         // current mouse position X, yScaled(1, -1);
-        const {x: mx, ySc: mySc} = this.getMousePos(e);
+        const {x: mx, ySc: mySc, y: my} = this.getMousePos(e);
+
+        console.log();
+
 
         leftSide.rect(x, y, 10, height);
         rightSide.rect(width + x - 10, y, 10, height);
@@ -349,7 +357,7 @@ class Scene {
             this.control.isResizing = true;
         }
         // drag
-        else if (mx > x && mx < x + width) {
+        else if (mx > x && mx < x + width && my && mySc-height < y) {
             this.dragok = true;
             this.control.isDragging = true;
         }
@@ -361,10 +369,10 @@ class Scene {
     myUp(e){
         e.preventDefault();
         e.stopPropagation();
-
         /*shut it down*/
         this.dragok = this.dragL = this.dragR = false;
         this.control.isDragging = this.control.isResizing = false;
+        this.animateContinue = false;
     }
 
     setControl(control) {
@@ -432,73 +440,80 @@ class Scene {
     // delete graph from feed canvas
     toggleGraph(evt){
         const key = evt.target.id;
-        const { charts, projection, maxY, deleted, maxY2 } = this.graph;
-
-        const tmpChar = charts[key];
-        const tmpPro = projection[key];
-
-        const tmpCharDel = deleted.charts[key];
-        const tmpProDel = deleted.projection[key];
+        const { charts, maxY, deleted } = this.graph;
+        const tmp = charts[key];
+        const tmpDel = deleted[key];
 
         /*@TODO toggle buttons with SVG*/
         if (key in charts) {
-            console.log('delete');
             //delete the graph
             this.graph.charts = objectWithoutKey(charts, key);
-            this.graph.projection = objectWithoutKey(charts, key);
-
-            this.graph.maxY = remove(maxY, tmpChar.max);
-            this.graph.maxY2 = remove(maxY2, tmpPro.max);
-
-            this.graph.deleted.charts[key] = tmpChar;
-            this.graph.deleted.projection[key] = tmpPro;
-
+            this.graph.maxY = remove(maxY, tmp.max);
+            this.graph.deleted[key] = tmp;
             evt.target.style.backgroundColor = 'white';
         } else {
-            console.log('add');
             //add the graph
-            this.graph.charts[key] = tmpCharDel;
-            this.graph.projection[key] = tmpProDel;
-
-            this.graph.maxY.push(tmpCharDel.max);
-            this.graph.maxY2.push(tmpProDel.max);
-            evt.target.style.backgroundColor = tmpCharDel.color;
-
+            this.graph.charts[key] = tmpDel;
+            this.graph.maxY.push(tmpDel.max);
+            evt.target.style.backgroundColor = tmpDel.color;
         }
 
+        this.animateContinue = true;
+        this.graph.mutatedGraph(this.control);
+        this.graph.setRatio();
+
         //redraw the scene
-        this.draw()
+        this.draw();
     };
 
     /*Canvas manipulations*/
     draw(){
-
         this.clearCanvas();
-
         // draw control
         this.control.draw(this.context);
-
-        // set all ratios
-        this.graph.setRatio();
-
         this.drawXLine();
 
+        /*Smooth animation*/
         let {charts, ratio: {prx, pry, rx, ry}, projection} = this.graph;
+        let buffer = Number(Math.abs(((pry-this.buffer)/15)).toPrecision(5));
+
+        // what to do, my son says i m an idiot. little genius
+        /*precision. svolochi :)*/
+        if(this.koef <= pry){
+            this.koef += buffer;
+            if(this.koef > pry){
+                this.animateContinue = false;
+            }
+        } else {
+            this.koef -= buffer;
+            if(this.koef < pry){
+                this.animateContinue = false;
+            }
+        }
 
         Object.values(charts).forEach(chart => {
-            chart.draw(chart, {rx, ry}, this.context);
+            chart.draw({rx, ry}, this.context);
         });
 
         // draw main canvas
         Object.values(projection).forEach(projection => {
-            projection.draw(projection, {rx: prx, ry: pry}, this.context, SEPARATE);
+            projection.draw({rx: prx, ry: this.koef}, this.context, SEPARATE);
         });
 
+        if(this.animateContinue) {
+            requestAnimationFrame(this.draw);
+            console.log("RUN")
+        } else {
+            console.log("STOP");
+            this.koef = pry;
+            this.buffer = pry;
+        }
     };
 
     init() {
         main.appendChild(this.el);
         this.buttons.forEach(this.drawButton.bind(this));
+        this.graph.setRatio();
         this.draw();
     }
 }
@@ -520,5 +535,6 @@ const parseFeed = (feed) => {
     const canvas = new Scene(canavsSize, "mainImg", feed);
     canvas.setControl(new Control(controlSize));
     canvas.setInitialGraph();
+
     canvas.init();
 };
