@@ -233,6 +233,7 @@ class Scene {
         this.koef = 0;
         this.koef2 = 0;
 
+
         /*FEED*/
         this.colors = colors;
         this.names = names;
@@ -462,6 +463,7 @@ class Scene {
 
         this.graph.mutatedGraph(this.control);
 
+
         //redraw the scene
         this.draw();
     };
@@ -477,6 +479,7 @@ class Scene {
 
         /*Smooth animation*/
         let {charts, ratio: {prx, pry, rx, ry}, projection} = this.graph;
+
         Object.values(charts).forEach(chart => {
             chart.draw(chart, {rx, ry: this.koef2}, this.context);
         });
@@ -487,32 +490,29 @@ class Scene {
         });
 
         // what to do, my son says i m an idiot. little genius
+        this.animateContinue = true;
+
         if(this.koef < pry){
             this.koef += pry/14;
             this.koef2 += ry/14;
-            this.animateContinue = true;
             if(this.koef > pry){
                 this.animateContinue = false;
             }
         } else {
             this.koef -= pry/14;
             this.koef2 -= ry/14;
-            this.animateContinue = true;
             if(this.koef < pry){
                 this.animateContinue = false;
             }
         }
 
         if(this.animateContinue) {
-            console.log('STOP');
             requestAnimationFrame(this.draw)
         } else {
             console.log("cancel");
             this.koef = pry;
             this.koef2 = ry;
-
         }
-
     };
 
     init() {
