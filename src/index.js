@@ -12,7 +12,7 @@ const buttonSize = {width: "140px", height: "50px"};
 const YINTERVAL = 6;
 const AXISOffsetX = 40;
 const AXISOffsetY = 40;
-const CORRELATION = 0.9;
+const CORRELATION = 0.85;
 const PRECISION = 3;
 const SEPARATE = 170;
 
@@ -241,9 +241,6 @@ class Scene {
         this.columns = columns;
 
         /*SCENE (whole canvas)*/
-        this.width = size.width;
-        this.height = size.height;
-
         let canvas = document.createElement('canvas');
             canvas.width = size.width;
             canvas.height = size.height;
@@ -321,10 +318,9 @@ class Scene {
             this.graph.mutatedGraph(this.control);
 
             // redraw the scene
-            // this.animateContinue = true;
-            // requestAnimationFrame(() => { this.draw() } );
             this.graph.setRatio();
-            this.draw();
+            this.animateContinue = true;
+            requestAnimationFrame(() => { this.draw() } );
 
             // reset the starting mouse position for the next mousemove
             this.startX = mx;
@@ -481,7 +477,7 @@ class Scene {
         let {charts, ratio: {prx, pry, rx, ry}, projection} = this.graph;
 
         // what to do, my son says i m an idiot. little genius
-        if(this.koef < pry){
+        if(this.koef <= pry){
             this.koef += Number((pry/14).toPrecision(3));
             if(this.koef > pry){
                 this.animateContinue = false;
