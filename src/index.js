@@ -229,6 +229,9 @@ class Scene {
 
         /*ANIMATION*/
         this.animateContinue = false;
+        // set initial coef
+        this.koef = 0;
+        this.koef2 = 0;
 
         /*FEED*/
         this.colors = colors;
@@ -317,8 +320,9 @@ class Scene {
             this.graph.mutatedGraph(this.control);
 
             // redraw the scene
-            this.animateContinue = true;
-            requestAnimationFrame(() => { this.draw() } );
+            // this.animateContinue = true;
+            // requestAnimationFrame(() => { this.draw() } );
+            this.draw();
 
             // reset the starting mouse position for the next mousemove
             this.startX = mx;
@@ -459,40 +463,40 @@ class Scene {
         this.graph.mutatedGraph(this.control);
 
         //redraw the scene
-        this.animateContinue = true;
         this.draw();
-        this.animateContinue = false;
-
     };
 
     /*Canvas manipulations*/
     draw(){
         this.clearCanvas();
-
         // draw control
         this.control.draw(this.context);
-
         // set all ratios
         this.graph.setRatio();
-
         this.drawXLine();
 
+        /*Smooth animation*/
         let {charts, ratio: {prx, pry, rx, ry}, projection} = this.graph;
-
         Object.values(charts).forEach(chart => {
-            chart.draw(chart, {rx, ry}, this.context);
+            chart.draw(chart, {rx, ry: this.koef2}, this.context);
         });
 
         // draw main canvas
         Object.values(projection).forEach(projection => {
-            projection.draw(projection, {rx: prx, ry: pry}, this.context, SEPARATE);
+            projection.draw(projection, {rx: prx, ry: this.koef}, this.context, SEPARATE);
         });
 
-        console.log('running');
-        /*Smooth animation*/
-        if(this.animateContinue){
+        this.koef += pry/14;
+        this.koef2 += ry/14;
+
+
+        if(!this.animateContinue && this.koef < pry && this.koef2 < ry) {
             console.log('STOP');
             requestAnimationFrame(this.draw)
+        } else {
+            console.log("cancel");
+            this.koef = 0;
+            this.koef2 = 0;
         }
 
     };
