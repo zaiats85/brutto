@@ -118,7 +118,8 @@ class Chart {
     };
 
     // create single graph
-    draw({ color, x, y }, { rx, ry }, context, separate = 0){
+    draw({ rx, ry }, context, separate = 0){
+        let { color, x, y } = this;
         context.lineWidth = separate ? 3 : 2;
         context.beginPath();
         context.strokeStyle = color;
@@ -228,11 +229,10 @@ class Scene {
         this.buttons = [];
 
         /*ANIMATION*/
-        this.animateContinue = false;
+        this.animateContinue = true;
         // set initial coef
         this.koef = 0;
         this.koef2 = 0;
-
 
         /*FEED*/
         this.colors = colors;
@@ -323,6 +323,7 @@ class Scene {
             // redraw the scene
             // this.animateContinue = true;
             // requestAnimationFrame(() => { this.draw() } );
+            this.graph.setRatio();
             this.draw();
 
             // reset the starting mouse position for the next mousemove
@@ -461,8 +462,9 @@ class Scene {
             evt.target.style.backgroundColor = tmpDel.color;
         }
 
+        this.animateContinue = true;
         this.graph.mutatedGraph(this.control);
-
+        this.graph.setRatio();
 
         //redraw the scene
         this.draw();
@@ -473,51 +475,46 @@ class Scene {
         this.clearCanvas();
         // draw control
         this.control.draw(this.context);
-        // set all ratios
-        this.graph.setRatio();
         this.drawXLine();
 
         /*Smooth animation*/
         let {charts, ratio: {prx, pry, rx, ry}, projection} = this.graph;
 
-        Object.values(charts).forEach(chart => {
-            chart.draw(chart, {rx, ry: this.koef2}, this.context);
-        });
-
-        // draw main canvas
-        Object.values(projection).forEach(projection => {
-            projection.draw(projection, {rx: prx, ry: this.koef}, this.context, SEPARATE);
-        });
-
         // what to do, my son says i m an idiot. little genius
-        this.animateContinue = true;
-
         if(this.koef < pry){
-            this.koef += pry/14;
-            this.koef2 += ry/14;
+            this.koef += Number((pry/14).toPrecision(3));
             if(this.koef > pry){
                 this.animateContinue = false;
             }
         } else {
-            this.koef -= pry/14;
-            this.koef2 -= ry/14;
+            this.koef -= Number((pry/5).toPrecision(3));
             if(this.koef < pry){
                 this.animateContinue = false;
             }
         }
 
+        Object.values(charts).forEach(chart => {
+            chart.draw({rx, ry}, this.context);
+        });
+
+        // draw main canvas
+        Object.values(projection).forEach(projection => {
+            projection.draw({rx: prx, ry: this.koef}, this.context, SEPARATE);
+        });
+
         if(this.animateContinue) {
-            requestAnimationFrame(this.draw)
+            requestAnimationFrame(this.draw);
+            console.log("RUN")
         } else {
-            console.log("cancel");
+            console.log("STOP");
             this.koef = pry;
-            this.koef2 = ry;
         }
     };
 
     init() {
         main.appendChild(this.el);
         this.buttons.forEach(this.drawButton.bind(this));
+        this.graph.setRatio();
         this.draw();
     }
 }
@@ -530,7 +527,7 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[4])
+        parseFeed(result[0])
     });
 
 const parseFeed = (feed) => {
@@ -539,5 +536,6 @@ const parseFeed = (feed) => {
     const canvas = new Scene(canavsSize, "mainImg", feed);
     canvas.setControl(new Control(controlSize));
     canvas.setInitialGraph();
+
     canvas.init();
 };
