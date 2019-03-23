@@ -388,13 +388,12 @@ class Scene {
         this.context.lineWidth = 1;
         this.context.strokeStyle = 'grey';
         this.context.fillStyle = 'grey';
-        let { pry } = this.graph.ratio;
 
         /*draw xAxis*/
         for (let j = 0; j < YINTERVAL; j++) {
             this.context.save();
             let y = CORRELATION * j * this.graph.graphHeight / YINTERVAL;
-            let val = parseInt(y / pry).toString();
+            let val = parseInt(y / this.koef).toString();
             let dY = y + SEPARATE;
 
             /*draw xAxis*/
@@ -473,12 +472,10 @@ class Scene {
         this.control.draw(this.context);
         this.drawXLine();
 
-        /*Smooth animation*/
         let {charts, ratio: {prx, pry, rx, ry}, projection} = this.graph;
         let buffer = Number(Math.abs(((pry-this.buffer)/15)).toPrecision(5));
 
-        // what to do, my son says i m an idiot. little genius
-        /*precision. svolochi :)*/
+        /*what to do, my son says i m an idiot. little genius. Precision. Svolochi :)*/
         if(this.koef <= pry){
             this.koef += buffer;
             if(this.koef > pry){
@@ -491,6 +488,7 @@ class Scene {
             }
         }
 
+        /*Smooth animation*/
         Object.values(charts).forEach(chart => {
             chart.draw({rx, ry}, this.context);
         });
