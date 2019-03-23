@@ -213,7 +213,7 @@ class Graph {
     // get simple ratio A to B (with correlation);
     static getRelationAtoB(a, b, c = CORRELATION, precise = false){
         if(precise){
-            return ((a / b) * c).toPrecision(PRECISION);
+            return +((a / b) * c).toPrecision(PRECISION);
         } else {
             return +(a / b) * c
         }
@@ -486,16 +486,31 @@ class Scene {
             projection.draw(projection, {rx: prx, ry: this.koef}, this.context, SEPARATE);
         });
 
-        this.koef += pry/14;
-        this.koef2 += ry/14;
+        // what to do, my son says i m an idiot. little genius
+        if(this.koef < pry){
+            this.koef += pry/14;
+            this.koef2 += ry/14;
+            this.animateContinue = true;
+            if(this.koef > pry){
+                this.animateContinue = false;
+            }
+        } else {
+            this.koef -= pry/14;
+            this.koef2 -= ry/14;
+            this.animateContinue = true;
+            if(this.koef < pry){
+                this.animateContinue = false;
+            }
+        }
 
-        if(!this.animateContinue && this.koef < pry && this.koef2 < ry) {
+        if(this.animateContinue) {
             console.log('STOP');
             requestAnimationFrame(this.draw)
         } else {
             console.log("cancel");
-            this.koef = 0;
-            this.koef2 = 0;
+            this.koef = pry;
+            this.koef2 = ry;
+
         }
 
     };
