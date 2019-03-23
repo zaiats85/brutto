@@ -489,7 +489,6 @@ class Scene {
         this.koef += pry/14;
         this.koef2 += ry/14;
 
-
         if(!this.animateContinue && this.koef < pry && this.koef2 < ry) {
             console.log('STOP');
             requestAnimationFrame(this.draw)
