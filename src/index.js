@@ -9,7 +9,7 @@ const thumbSize = {width: 1200, height: 100};
 const controlSize = {width: 350, height: 100};
 const PROJECTION_HEIGHT = 500;
 const buttonSize = {width: "140px", height: "50px"};
-const YINTERVAL = 6;
+const YINTERVAL = 5;
 const AXISOffsetX = 40;
 const AXISOffsetY = 40;
 const CORRELATION = 0.85;
@@ -340,8 +340,6 @@ class Scene {
         // current mouse position X, yScaled(1, -1);
         const {x: mx, ySc: mySc, y: my} = this.getMousePos(e);
 
-        console.log();
-
 
         leftSide.rect(x, y, 10, height);
         rightSide.rect(width + x - 10, y, 10, height);
@@ -360,6 +358,8 @@ class Scene {
         else if (mx > x && mx < x + width && my && mySc-height < y) {
             this.dragok = true;
             this.control.isDragging = true;
+        } else if(mySc-height > y){
+            console.log("draw a line here");
         }
 
         // save the current mouse position
@@ -389,21 +389,18 @@ class Scene {
         this.context.strokeStyle = 'grey';
         this.context.fillStyle = 'grey';
 
+
+
         /*draw xAxis*/
         for (let j = 0; j < YINTERVAL; j++) {
             this.context.save();
-            let y = CORRELATION * j * this.graph.graphHeight / YINTERVAL;
-            let val = parseInt(y / this.koef).toString();
-            let dY = y + SEPARATE;
 
-            /*draw xAxis*/
-            this.context.beginPath();
-            this.context.moveTo(AXISOffsetX, dY);
+            let y = (this.graph.graphHeight * j)/YINTERVAL;
+            let val = this.graph.ratio.pry
 
-            this.context.lineTo(this.graph.width - AXISOffsetX, dY);
-            this.context.scale(1, -1);
+            console.log(val);
 
-            this.context.fillText(val, AXISOffsetX, -(dY + 10));
+
             this.context.stroke();
             this.context.restore();
         }
@@ -500,9 +497,9 @@ class Scene {
 
         if(this.animateContinue) {
             requestAnimationFrame(this.draw);
-            console.log("RUN")
+            //console.log("RUN")
         } else {
-            console.log("STOP");
+            //console.log("STOP");
             this.koef = pry;
             this.buffer = pry;
         }
@@ -536,3 +533,24 @@ const parseFeed = (feed) => {
 
     canvas.init();
 };
+/*
+
+
+for (let j = 0; j < YINTERVAL; j++) {
+    this.context.save();
+    let y = j * this.graph.graphHeight / YINTERVAL;
+
+    let val = parseInt(y / this.graph.ratio.pry).toString();
+    let dY = y*this.koef + SEPARATE;
+
+    /!*draw xAxis*!/
+    this.context.beginPath();
+    this.context.moveTo(AXISOffsetX, dY);
+
+    this.context.lineTo(this.graph.width - AXISOffsetX, dY);
+    this.context.scale(1, -1);
+
+    this.context.fillText(val, AXISOffsetX, -(dY + 10));
+    this.context.stroke();
+    this.context.restore();
+}*/
