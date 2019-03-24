@@ -240,10 +240,6 @@ class Graph {
     // create a projection
     mutatedGraph({x, width}){
 
-        if(Object.keys(this.charts).length === 0){
-            throw new Error("can't mutate nothing");
-        }
-
         /*Detect control bar position*/
         let start = (x <= 0) ? 0 : x;
         let end = x + width;
@@ -481,6 +477,9 @@ class Scene {
         const { charts, maxY, deleted } = this.graph;
         const tmp = charts[key];
         const tmpDel = deleted[key];
+        if(tmp){
+            tmp.temporaryDeleted = true;
+        }
 
         /*@TODO toggle buttons with SVG*/
         if (key in charts) {
@@ -492,8 +491,13 @@ class Scene {
         } else {
             //add the graph
             this.graph.charts[key] = tmpDel;
+            delete this.graph.deleted[key];
             this.graph.maxY.push(tmpDel.max);
             evt.target.style.backgroundColor = tmpDel.color;
+        }
+
+        if(Object.keys(this.graph.charts).length === 0){
+            throw new Error("can't mutate nothing");
         }
 
         this.animateContinue = true;
@@ -511,7 +515,11 @@ class Scene {
         // draw control
         this.control.draw(this.context);
 
-        let {charts, ratio: {prx, pry, rx, ry, realProjectionMaxHeight}, projection} = this.graph;
+        let {
+            charts,
+            ratio: {prx, pry, rx, ry, realProjectionMaxHeight},
+            projection,
+        } = this.graph;
 
         if(almostEqual(this.koef, pry, almostEqual.DBL_EPSILON, almostEqual.DBL_EPSILON)){
             this.animateContinue = false;
@@ -527,7 +535,8 @@ class Scene {
 
         /*Smooth animation*/
         Object.values(charts).forEach(chart => {
-            chart.draw({rx, ry: this.koef2}, this.context);
+            ry  = chart.temporaryDeleted ? this.graph.ratio.ry : this.koef2;
+            chart.draw({rx, ry}, this.context);
         });
 
         // draw main canvas
@@ -569,7 +578,7 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[0])
+        parseFeed(result[4])
     });
 
 const parseFeed = (feed) => {
