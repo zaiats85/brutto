@@ -9,12 +9,25 @@ const thumbSize = {width: 1200, height: 100};
 const controlSize = {width: 350, height: 100};
 const PROJECTION_HEIGHT = 600;
 const buttonSize = {width: "140px", height: "50px"};
+const nightModeButtoSize = {width: "240px", height: "50px"};
+const MODE = {
+    day: {
+        scroll: "white",
+        border: "lightgrey",
+        track: "#f5f5f5"
+    },
+    night: {
+        scroll: "#192849",
+        border: "grey",
+        track: "#192831"
+    }
+}
 
 const YINTERVAL = 6;
 const REDRAW = 15;
-const AXISOffsetX = 40;
+const AXISOffsetX = 5;
 const AXISOffsetY = 40;
-const CORRELATION = 1;
+const CORRELATION = 0.9;
 const PRECISION = 13;
 const SEPARATE = 170;
 
@@ -97,23 +110,28 @@ class Control {
         this.fill = "white";
         this.isDragging = false;
         this.isResizing = false;
+        this.mode = MODE;
     };
 
     // create draggable && resizable rectangle
-    draw(context){
+    draw(context, night){
+        // Awfull but no time left.
+        const { scroll, border, track } =  this.mode[night ? "night" : "day"];
         const { x, y, width, height } = this;
+        context.fillStyle = track;
 
-        context.fillStyle ="#f5f5f5";
         context.fillRect(0, y, context.canvas.width, height);
-
         context.beginPath();
-        context.fillStyle ="white";
+
+        context.fillStyle = scroll;
+
         context.rect(x, y, width, height);
         context.closePath();
         context.fill();
 
         // set draggable edges color
-        context.fillStyle ="lightgrey";
+        //context.fillStyle ="lightgrey";
+        context.fillStyle = border;
         context.fillRect(x, y, 10, height);
         context.fillRect(width + x - 10, y, 10, height);
 
@@ -285,6 +303,11 @@ class Scene {
         this.graph = new Graph(thumbSize);
         this.control = {};
         this.buttons = [];
+        this.night = false;
+        this.mode = {
+            day:"white",
+            night: "#21263a"
+        };
 
         /*ANIMATION*/
         this.animateContinue = true;
@@ -326,6 +349,10 @@ class Scene {
 
     }
 
+    set(key, val){
+        this[key] = val;
+    }
+
     setInitialGraph(){
         // Form Graphs
         let x = this.columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
@@ -347,6 +374,8 @@ class Scene {
             this.graph.add("maxY", max);
             this.addButton({color: this.colors[key], id: key, label: value, size: buttonSize });
         });
+
+        this.addButton({color: "#9ad7db", id: "nightMode", label: "Night Mode", size: nightModeButtoSize});
 
         this.graph.mutatedGraph(this.control);
     }
@@ -467,9 +496,20 @@ class Scene {
         button.style.background = color;
         button.style.width = width;
         button.style.height = height;
-        button.onclick = this.toggleGraph.bind(this);
+        if(label === "Night Mode"){
+            button.onclick = this.nightMode.bind(this);
+        } else {
+            button.onclick = this.toggleGraph.bind(this);
+        }
         controls.appendChild(button);
     };
+
+    nightMode(evt){
+        this.set("night", !this.night);
+        evt.target.innerText = this.night ?  "Night Mode" : "Day mode";
+        document.body.classList.toggle("night");
+        this.draw();
+    }
 
     // delete graph from feed canvas
     toggleGraph(evt){
@@ -510,8 +550,13 @@ class Scene {
     /*Canvas manipulations*/
     draw(){
         this.clearCanvas();
+
+        // nightMode toggle
+        this.context.fillStyle = this.night ? this.mode.night : this.mode.day;
+        this.context.fillRect(0, 0, this.context.canvas.width, this.context.canvas.height);
+
         // draw control
-        this.control.draw(this.context);
+        this.control.draw(this.context, this.night);
 
         let {
             charts,
@@ -531,13 +576,15 @@ class Scene {
         this.koef += tmp;
         this.koef2 += tmp2;
 
+        // referencing marked deleted object
+        let reference;
+
         /*Smooth animation*/
-        Object.values(charts).forEach(chart => {
+        Object.entries(charts).forEach(([key, chart]) => {
+            // ugly - but working and no time for refactoring. but ugly.
             ry = (chart.tmpDel) ? this.graph.ratio.ry : this.koef2;
-            if(!this.animateContinue){
-                chart.tmpDel = false;
-            }
             chart.draw({rx, ry}, this.context);
+            reference = key;
         });
 
         // draw main canvas
@@ -557,15 +604,16 @@ class Scene {
             //console.log("STOP");
             this.koef = pry;
             this.buffer = pry;
-
             this.koef2 = ry;
             this.buffer2 = ry;
+            this.graph.charts[reference].tmpDel = false
         }
     };
 
     init() {
         main.appendChild(this.el);
         this.buttons.forEach(this.drawButton.bind(this));
+        this.buttons.push();
         this.graph.setRatio();
         this.draw();
     }
@@ -579,14 +627,17 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[1])
+        parseFeed(result[0]);
+        window.result = result;
     });
 
-const parseFeed = (feed) => {
-
+/*IDIOTIZM. But no time for passing. SHOW PURPOSE ONLY*/
+window.parseFeed = (feed) => {
+    document.getElementById("main").innerHTML = null;
+    document.getElementById("controls").innerHTML = null;
     /*CANVAS*/
     const canvas = new Scene(canavsSize, "mainImg", feed);
     canvas.setControl(new Control(controlSize));
     canvas.setInitialGraph();
     canvas.init();
-};
+}
