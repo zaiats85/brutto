@@ -146,6 +146,7 @@ class Chart {
         context.lineWidth = 1;
         context.strokeStyle = 'grey';
         context.stroke();
+        context.restore();
 
     };
 
@@ -174,28 +175,17 @@ class Chart {
                 Chart.drawAxis(getDate(x[i]), pos, context );
             }
         }
-
         context.stroke();
-
         let j = 0;
         while(j < YINTERVAL && separate){
-            context.save();
-
-            console.log(realProjectionMaxHeight);
-            // CONCENTRATE
             // real coordinate to which I must animate
-            let y = j * PROJECTION_HEIGHT/YINTERVAL;
-            let y2 = j * realProjectionMaxHeight/YINTERVAL;
-
+            let y = j * realProjectionMaxHeight/YINTERVAL;
             // real value which is shown to the user
-            let val = parseInt(y/ry ).toString();
-            let dY = y2*ry + SEPARATE;
-
+            let val = parseInt(y).toString();
+            let dY = y*ry + SEPARATE;
             Chart.drawXLine(context, val, dY);
-            context.restore();
             j++;
         }
-
     };
 }
 
@@ -229,7 +219,7 @@ class Graph {
 
     setRatio(){
         // real graph max point relative to Yinterval
-        let  realGraphHeight = getZahlen(Math.max(...this.maxY2), YINTERVAL);
+        const  realGraphHeight = getZahlen(Math.max(...this.maxY2), YINTERVAL);
 
         this.ratio.rx = Graph.getRelationAtoB(this.width, this.num, 1 , PRECISION);
         this.ratio.prx = Graph.getRelationAtoB(this.width, this.num2, 1, PRECISION);
@@ -238,7 +228,6 @@ class Graph {
         this.ratio.realProjectionMaxHeight = realGraphHeight;
         // for sake of precision
         this.ratio.pry = Graph.getRelationAtoB(this.graphHeight, realGraphHeight, 1, PRECISION);
-
     };
 
     addGraph(key, chart){
@@ -258,7 +247,7 @@ class Graph {
         let x1 = Math.round(this.num * Graph.getRelationAtoB(end, this.width, 1));
         let x0 = Math.round(this.num * Graph.getRelationAtoB(start, this.width, 1));
 
-        // reassing each time
+        // empty each time
         this.maxY2.length = 0;
         this.projection = {};
 
@@ -326,7 +315,6 @@ class Scene {
         this.dragok = false;
         this.dragL = false;
         this.dragR = false;
-        this.startX;
 
         canvas.onmousedown = this.myDown.bind(this);
         canvas.onmouseup = this.myUp.bind(this);
@@ -532,7 +520,6 @@ class Scene {
 
         // draw main canvas
         Object.values(projection).forEach(projection => {
-            console.log(realProjectionMaxHeight);
             projection.draw({rx: prx, ry: this.koef}, this.context, SEPARATE, realProjectionMaxHeight);
         });
 
@@ -567,7 +554,7 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[4])
+        parseFeed(result[0])
     });
 
 const parseFeed = (feed) => {
@@ -576,6 +563,5 @@ const parseFeed = (feed) => {
     const canvas = new Scene(canavsSize, "mainImg", feed);
     canvas.setControl(new Control(controlSize));
     canvas.setInitialGraph();
-
     canvas.init();
 };
