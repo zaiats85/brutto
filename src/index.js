@@ -494,7 +494,7 @@ class Scene {
 
         let {charts, ratio: {prx, pry, rx, ry}, projection} = this.graph;
 
-        if(almostEqual(this.koef, pry, almostEqual.FLT_EPSILON, almostEqual.FLT_EPSILON)){
+        if(almostEqual(this.koef, pry, almostEqual.DBL_EPSILON, almostEqual.DBL_EPSILON)){
             this.animateContinue = false;
         }
 
