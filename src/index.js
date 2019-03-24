@@ -4,15 +4,15 @@ import './style.scss';
 const method = "GET";
 const url = "data.json";
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
-const canavsSize = {width: 1200, height: 650};
+const canavsSize = {width: 1200, height: 870};
 const thumbSize = {width: 1200, height: 100};
 const controlSize = {width: 350, height: 100};
-const PROJECTION_HEIGHT = 500;
+const PROJECTION_HEIGHT = 600;
 const buttonSize = {width: "140px", height: "50px"};
 const YINTERVAL = 6;
 const AXISOffsetX = 40;
 const AXISOffsetY = 40;
-const CORRELATION = 0.85;
+const CORRELATION = 0.9;
 const PRECISION = 13;
 const SEPARATE = 170;
 
@@ -59,9 +59,15 @@ const almostEqual = (a, b, absoluteError, relativeError) => {
     }
     return a === b
 };
-
 almostEqual.FLT_EPSILON = 1.19209290e-7;
 almostEqual.DBL_EPSILON = 2.2204460492503131e-16;
+
+const getZahlen = (zahlen, intrval = YINTERVAL) => {
+    while(zahlen % intrval !== 0){
+        zahlen++;
+    }
+    return zahlen
+};
 
 const objectWithoutKey = (object, key) => {
     const {[key]: deletedKey, ...otherKeys} = object;
@@ -129,6 +135,7 @@ class Chart {
     static drawXLine(context, val, y){
         /*draw xAxis*/
         context.beginPath();
+        context.save();
         context.moveTo(AXISOffsetX, y);
         context.lineTo(context.canvas.width - AXISOffsetX, y);
         context.scale(1, -1);
@@ -150,7 +157,10 @@ class Chart {
 
     // create single graph
     draw({ rx, ry }, context, separate = 0){
-        let { color, x, y } = this;
+        let { color, x, y, max } = this;
+
+        console.log(max);
+
         context.lineWidth = separate ? 3 : 2;
         context.beginPath();
         context.strokeStyle = color;
@@ -171,9 +181,15 @@ class Chart {
         let j = 0;
         while(j < YINTERVAL && separate){
             context.save();
+
+            // CONCENTRATE
+            // real coordinate to which I must animate
             let y = j * PROJECTION_HEIGHT/YINTERVAL;
-            let val = parseInt(y / ry).toString();
-            let dY = y + SEPARATE;
+            let y2 = j * 282/YINTERVAL;
+
+            // real value which is shown to the user
+            let val = parseInt(y/ry ).toString();
+            let dY = y2*ry + SEPARATE;
 
             Chart.drawXLine(context, val, dY);
             context.restore();
@@ -212,10 +228,13 @@ class Graph {
     };
 
     setRatio(){
-        this.ratio.ry = Graph.getRelationAtoB(this.height, Math.max(...this.maxY), CORRELATION, PRECISION);
+
         this.ratio.rx = Graph.getRelationAtoB(this.width, this.num, 1 , PRECISION);
         this.ratio.prx = Graph.getRelationAtoB(this.width, this.num2, 1, PRECISION);
-        this.ratio.pry = Graph.getRelationAtoB(this.graphHeight, Math.max(...this.maxY2), CORRELATION, PRECISION);
+        // for sake of  simplicity
+        this.ratio.ry = Graph.getRelationAtoB(this.height, Math.max(...this.maxY), CORRELATION, PRECISION);
+        // for sake of precision
+        this.ratio.pry = Graph.getRelationAtoB(this.graphHeight, getZahlen(Math.max(...this.maxY2)), 1, PRECISION);
     };
 
     addGraph(key, chart){
