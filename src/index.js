@@ -9,7 +9,9 @@ const thumbSize = {width: 1200, height: 100};
 const controlSize = {width: 350, height: 100};
 const PROJECTION_HEIGHT = 600;
 const buttonSize = {width: "140px", height: "50px"};
+
 const YINTERVAL = 6;
+const REDRAW = 15;
 const AXISOffsetX = 40;
 const AXISOffsetY = 40;
 const CORRELATION = 0.9;
@@ -156,11 +158,8 @@ class Chart {
     };
 
     // create single graph
-    draw({ rx, ry }, context, separate = 0){
-        let { color, x, y, max } = this;
-
-        console.log(max);
-
+    draw({ rx, ry }, context, separate = 0, realProjectionMaxHeight ){
+        const { color, x, y } = this;
         context.lineWidth = separate ? 3 : 2;
         context.beginPath();
         context.strokeStyle = color;
@@ -182,10 +181,11 @@ class Chart {
         while(j < YINTERVAL && separate){
             context.save();
 
+            console.log(realProjectionMaxHeight);
             // CONCENTRATE
             // real coordinate to which I must animate
             let y = j * PROJECTION_HEIGHT/YINTERVAL;
-            let y2 = j * 282/YINTERVAL;
+            let y2 = j * realProjectionMaxHeight/YINTERVAL;
 
             // real value which is shown to the user
             let val = parseInt(y/ry ).toString();
@@ -228,13 +228,17 @@ class Graph {
     };
 
     setRatio(){
+        // real graph max point relative to Yinterval
+        let  realGraphHeight = getZahlen(Math.max(...this.maxY2), YINTERVAL);
 
         this.ratio.rx = Graph.getRelationAtoB(this.width, this.num, 1 , PRECISION);
         this.ratio.prx = Graph.getRelationAtoB(this.width, this.num2, 1, PRECISION);
         // for sake of  simplicity
         this.ratio.ry = Graph.getRelationAtoB(this.height, Math.max(...this.maxY), CORRELATION, PRECISION);
+        this.ratio.realProjectionMaxHeight = realGraphHeight;
         // for sake of precision
-        this.ratio.pry = Graph.getRelationAtoB(this.graphHeight, getZahlen(Math.max(...this.maxY2)), 1, PRECISION);
+        this.ratio.pry = Graph.getRelationAtoB(this.graphHeight, realGraphHeight, 1, PRECISION);
+
     };
 
     addGraph(key, chart){
@@ -511,14 +515,14 @@ class Scene {
         // draw control
         this.control.draw(this.context);
 
-        let {charts, ratio: {prx, pry, rx, ry}, projection} = this.graph;
+        let {charts, ratio: {prx, pry, rx, ry, realProjectionMaxHeight}, projection} = this.graph;
 
         if(almostEqual(this.koef, pry, almostEqual.DBL_EPSILON, almostEqual.DBL_EPSILON)){
             this.animateContinue = false;
         }
 
         /*what to do, my son says i m an idiot. little genius. Precision. Svolochi :)*/
-        let tmp = Number(((pry-this.buffer)/15).toFixed(99));
+        let tmp = Number(((pry-this.buffer)/REDRAW).toFixed(99));
         this.koef += tmp;
 
         /*Smooth animation*/
@@ -528,7 +532,8 @@ class Scene {
 
         // draw main canvas
         Object.values(projection).forEach(projection => {
-            projection.draw({rx: prx, ry: this.koef}, this.context, SEPARATE);
+            console.log(realProjectionMaxHeight);
+            projection.draw({rx: prx, ry: this.koef}, this.context, SEPARATE, realProjectionMaxHeight);
         });
 
         // what to do, my son says i m an idiot. little genius
