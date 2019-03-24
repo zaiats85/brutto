@@ -47,12 +47,10 @@ const main = document.getElementById("main");
 
 /* UTILS */
 
-function almostEqual(a, b, absoluteError, relativeError) {
+const almostEqual = (a, b, absoluteError, relativeError) => {
     let d = Math.abs(a - b);
-
     if (absoluteError == null) absoluteError = almostEqual.DBL_EPSILON;
     if (relativeError == null) relativeError = absoluteError;
-
     if(d <= absoluteError) {
         return true
     }
@@ -60,7 +58,7 @@ function almostEqual(a, b, absoluteError, relativeError) {
         return true
     }
     return a === b
-}
+};
 
 almostEqual.FLT_EPSILON = 1.19209290e-7;
 almostEqual.DBL_EPSILON = 2.2204460492503131e-16;
@@ -497,11 +495,12 @@ class Scene {
         let {charts, ratio: {prx, pry, rx, ry}, projection} = this.graph;
 
         if(almostEqual(this.koef, pry, almostEqual.FLT_EPSILON, almostEqual.FLT_EPSILON)){
+            console.log(this.koef);
             this.animateContinue = false;
         }
 
         /*what to do, my son says i m an idiot. little genius. Precision. Svolochi :)*/
-        this.koef += Number(((pry-this.buffer)/15).toPrecision(PRECISION));
+        this.koef += Number(((pry-this.buffer)/15).toFixed(20));
 
         /*Smooth animation*/
         Object.values(charts).forEach(chart => {
