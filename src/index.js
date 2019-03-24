@@ -531,13 +531,15 @@ class Scene {
         this.koef += tmp;
         this.koef2 += tmp2;
 
+        // referencing marked deleted object
+        let reference;
+
         /*Smooth animation*/
-        Object.values(charts).forEach(chart => {
+        Object.entries(charts).forEach(([key, chart]) => {
+            // ugly - but working and no time for refactoring. but ugly.
             ry = (chart.tmpDel) ? this.graph.ratio.ry : this.koef2;
-            if(!this.animateContinue){
-                chart.tmpDel = false;
-            }
             chart.draw({rx, ry}, this.context);
+            reference = key;
         });
 
         // draw main canvas
@@ -557,9 +559,9 @@ class Scene {
             //console.log("STOP");
             this.koef = pry;
             this.buffer = pry;
-
             this.koef2 = ry;
             this.buffer2 = ry;
+            this.graph.charts[reference].tmpDel = false
         }
     };
 
@@ -579,7 +581,7 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[1])
+        parseFeed(result[4])
     });
 
 const parseFeed = (feed) => {
