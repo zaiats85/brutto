@@ -478,7 +478,7 @@ class Scene {
         const tmp = charts[key];
         const tmpDel = deleted[key];
         if(tmp){
-            tmp.temporaryDeleted = true;
+            tmp.tmpDel = true;
         }
 
         /*@TODO toggle buttons with SVG*/
@@ -491,7 +491,6 @@ class Scene {
         } else {
             //add the graph
             this.graph.charts[key] = tmpDel;
-            delete this.graph.deleted[key];
             this.graph.maxY.push(tmpDel.max);
             evt.target.style.backgroundColor = tmpDel.color;
         }
@@ -535,7 +534,10 @@ class Scene {
 
         /*Smooth animation*/
         Object.values(charts).forEach(chart => {
-            ry  = chart.temporaryDeleted ? this.graph.ratio.ry : this.koef2;
+            ry = (chart.tmpDel) ? this.graph.ratio.ry : this.koef2;
+            if(!this.animateContinue){
+                chart.tmpDel = false;
+            }
             chart.draw({rx, ry}, this.context);
         });
 
