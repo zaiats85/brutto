@@ -495,12 +495,12 @@ class Scene {
         let {charts, ratio: {prx, pry, rx, ry}, projection} = this.graph;
 
         if(almostEqual(this.koef, pry, almostEqual.FLT_EPSILON, almostEqual.FLT_EPSILON)){
-            console.log(this.koef);
             this.animateContinue = false;
         }
 
         /*what to do, my son says i m an idiot. little genius. Precision. Svolochi :)*/
-        this.koef += Number(((pry-this.buffer)/15).toFixed(20));
+        let tmp = Number(((pry-this.buffer)/15).toFixed(99));
+        this.koef += tmp;
 
         /*Smooth animation*/
         Object.values(charts).forEach(chart => {
@@ -511,6 +511,11 @@ class Scene {
         Object.values(projection).forEach(projection => {
             projection.draw({rx: prx, ry: this.koef}, this.context, SEPARATE);
         });
+
+        // what to do, my son says i m an idiot. little genius
+        if( tmp > 0 && this.koef > pry || tmp < 0 && this.koef < pry){
+            this.animateContinue = false;
+        }
 
         if(this.animateContinue) {
             requestAnimationFrame(this.draw);
@@ -538,7 +543,7 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[4])
+        parseFeed(result[0])
     });
 
 const parseFeed = (feed) => {
