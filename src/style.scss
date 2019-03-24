@@ -2,9 +2,21 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  .load {
+    margin: 45px;
+    button {
+      width: 140px;
+      height: 50px;
+      border-radius: 5px;
+      margin: 10px;
+    }
+  }
 }
 .night {
   background-color: #21263a !important;
+  span {
+    color: white;
+  }
 }
 
 #nightMode {
@@ -18,6 +30,12 @@ body {
 #helper {
   margin-top: 50px;
   margin-bottom: 50px;
+}
+
+span {
+  font-size: 28px;
+  font-weight: bold;
+  text-align: left;
 }
 
 canvas #mainImg{

@@ -27,7 +27,7 @@ const YINTERVAL = 6;
 const REDRAW = 15;
 const AXISOffsetX = 5;
 const AXISOffsetY = 40;
-const CORRELATION = 1;
+const CORRELATION = 0.9;
 const PRECISION = 13;
 const SEPARATE = 170;
 
@@ -627,14 +627,17 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[0])
+        parseFeed(result[0]);
+        window.result = result;
     });
 
-const parseFeed = (feed) => {
-
+/*IDIOTIZM. But no time for passing. SHOW PURPOSE ONLY*/
+window.parseFeed = (feed) => {
+    document.getElementById("main").innerHTML = null;
+    document.getElementById("controls").innerHTML = null;
     /*CANVAS*/
     const canvas = new Scene(canavsSize, "mainImg", feed);
     canvas.setControl(new Control(controlSize));
     canvas.setInitialGraph();
     canvas.init();
-};
+}
