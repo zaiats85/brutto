@@ -240,6 +240,10 @@ class Graph {
     // create a projection
     mutatedGraph({x, width}){
 
+        if(Object.keys(this.charts).length === 0){
+            throw new Error("can't mutate nothing");
+        }
+
         /*Detect control bar position*/
         let start = (x <= 0) ? 0 : x;
         let end = x + width;
@@ -291,6 +295,9 @@ class Scene {
         // set initial coef
         this.koef = 0;
         this.buffer = 0;
+
+        this.koef2 = 0;
+        this.buffer2 = 0;
 
         /*FEED*/
         this.colors = colors;
@@ -493,6 +500,7 @@ class Scene {
         this.graph.mutatedGraph(this.control);
         this.graph.setRatio();
 
+
         //redraw the scene
         this.draw();
     };
@@ -511,11 +519,15 @@ class Scene {
 
         /*what to do, my son says i m an idiot. little genius. Precision. Svolochi :)*/
         let tmp = Number(((pry-this.buffer)/REDRAW).toFixed(99));
+        let tmp2 = Number((ry-this.buffer2)/REDRAW);
+
+        // ugly - but working and no time for refactoring. but ugly.
         this.koef += tmp;
+        this.koef2 += tmp2;
 
         /*Smooth animation*/
         Object.values(charts).forEach(chart => {
-            chart.draw({rx, ry}, this.context);
+            chart.draw({rx, ry: this.koef2}, this.context);
         });
 
         // draw main canvas
@@ -535,6 +547,9 @@ class Scene {
             //console.log("STOP");
             this.koef = pry;
             this.buffer = pry;
+
+            this.koef2 = ry;
+            this.buffer2 = ry;
         }
     };
 
