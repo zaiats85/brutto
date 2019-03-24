@@ -4,7 +4,11 @@ body {
   align-items: center;
 }
 .night {
-  background-color: #21263a;
+  background-color: #21263a !important;
+}
+
+#nightMode {
+  background-color: red;
 }
 
 #mainImg, #helper {
@@ -21,6 +25,10 @@ canvas #mainImg{
   border: 2px solid cadetblue;
 }
 
-button {
-  border-radius: 22px;
+#controls {
+  button {
+    border-radius: 22px;
+    margin: 0 20px;
+  }
+  margin-top: 50px;
 }

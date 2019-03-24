@@ -9,6 +9,19 @@ const thumbSize = {width: 1200, height: 100};
 const controlSize = {width: 350, height: 100};
 const PROJECTION_HEIGHT = 600;
 const buttonSize = {width: "140px", height: "50px"};
+const nightModeButtoSize = {width: "240px", height: "50px"};
+const MODE = {
+    day: {
+        scroll: "white",
+        border: "lightgrey",
+        track: "#f5f5f5"
+    },
+    night: {
+        scroll: "#192849",
+        border: "grey",
+        track: "#192831"
+    }
+}
 
 const YINTERVAL = 6;
 const REDRAW = 15;
@@ -97,18 +110,7 @@ class Control {
         this.fill = "white";
         this.isDragging = false;
         this.isResizing = false;
-        this.mode = {
-            day: {
-                scroll: "white",
-                border: "grey",
-                track: "#f5f5f5"
-            },
-            night: {
-                scroll: "#192849",
-                border: "lightgrey",
-                track: "#192831"
-            }
-        }
+        this.mode = MODE;
     };
 
     // create draggable && resizable rectangle
@@ -373,7 +375,7 @@ class Scene {
             this.addButton({color: this.colors[key], id: key, label: value, size: buttonSize });
         });
 
-        this.addButton({color: "#9ad7db", id: "nightMode", label: "Night Mode", size: buttonSize});
+        this.addButton({color: "#9ad7db", id: "nightMode", label: "Night Mode", size: nightModeButtoSize});
 
         this.graph.mutatedGraph(this.control);
     }
