@@ -12,7 +12,7 @@ const buttonSize = {width: "140px", height: "50px"};
 
 const YINTERVAL = 6;
 const REDRAW = 15;
-const AXISOffsetX = 40;
+const AXISOffsetX = 5;
 const AXISOffsetY = 40;
 const CORRELATION = 1;
 const PRECISION = 13;
@@ -101,19 +101,25 @@ class Control {
 
     // create draggable && resizable rectangle
     draw(context){
+
         const { x, y, width, height } = this;
 
-        context.fillStyle ="#f5f5f5";
+        //context.fillStyle ="#f5f5f5";
+        context.fillStyle ="#192831";
         context.fillRect(0, y, context.canvas.width, height);
 
         context.beginPath();
-        context.fillStyle ="white";
+
+        //context.fillStyle ="white";
+        context.fillStyle ="#192849";
+
         context.rect(x, y, width, height);
         context.closePath();
         context.fill();
 
         // set draggable edges color
-        context.fillStyle ="lightgrey";
+        //context.fillStyle ="lightgrey";
+        context.fillStyle ="grey";
         context.fillRect(x, y, 10, height);
         context.fillRect(width + x - 10, y, 10, height);
 
@@ -348,6 +354,8 @@ class Scene {
             this.addButton({color: this.colors[key], id: key, label: value, size: buttonSize });
         });
 
+        this.addButton({color: "#FFFDD0", id: "nightMode", label: "NightMode", size: buttonSize});
+
         this.graph.mutatedGraph(this.control);
     }
 
@@ -467,9 +475,17 @@ class Scene {
         button.style.background = color;
         button.style.width = width;
         button.style.height = height;
-        button.onclick = this.toggleGraph.bind(this);
+        if(label === "NightMode"){
+            button.onclick = this.nightMode.bind(this);
+        } else {
+            button.onclick = this.toggleGraph.bind(this);
+        }
         controls.appendChild(button);
     };
+
+    nightMode(evt){
+        console.log(this);
+    }
 
     // delete graph from feed canvas
     toggleGraph(evt){
@@ -510,6 +526,10 @@ class Scene {
     /*Canvas manipulations*/
     draw(){
         this.clearCanvas();
+        // nightMode toggle
+        this.context.fillStyle = "#21263a";
+        this.context.fillRect(0, 0, this.context.canvas.width, this.context.canvas.height);
+
         // draw control
         this.control.draw(this.context);
 
@@ -568,6 +588,7 @@ class Scene {
     init() {
         main.appendChild(this.el);
         this.buttons.forEach(this.drawButton.bind(this));
+        this.buttons.push();
         this.graph.setRatio();
         this.draw();
     }
@@ -581,7 +602,7 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[4])
+        parseFeed(result[0])
     });
 
 const parseFeed = (feed) => {
