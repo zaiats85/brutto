@@ -47,6 +47,30 @@ canvas #mainImg{
   button {
     border-radius: 22px;
     margin: 0 20px;
+    color: white;
   }
   margin-top: 50px;
+}
+
+.load {
+  button {
+    border-radius: 22px !important;
+    color: white;
+    font-weight: bold;
+  }
+  .one {
+    background-color: crimson;
+  }
+  .two {
+    background-color:cornflowerblue;
+  }
+  .three {
+    background-color: darkslateblue;
+  }
+  .four {
+    background-color: cadetblue;
+  }
+  .five {
+    background-color: peru;
+  }
 }
