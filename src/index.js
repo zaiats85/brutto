@@ -146,6 +146,7 @@ class Chart {
         context.lineWidth = 1;
         context.strokeStyle = 'grey';
         context.stroke();
+        context.restore();
 
     };
 
@@ -174,28 +175,17 @@ class Chart {
                 Chart.drawAxis(getDate(x[i]), pos, context );
             }
         }
-
         context.stroke();
-
         let j = 0;
         while(j < YINTERVAL && separate){
-            context.save();
-
-            console.log(realProjectionMaxHeight);
-            // CONCENTRATE
             // real coordinate to which I must animate
-            let y = j * PROJECTION_HEIGHT/YINTERVAL;
-            let y2 = j * realProjectionMaxHeight/YINTERVAL;
-
+            let y = j * realProjectionMaxHeight/YINTERVAL;
             // real value which is shown to the user
-            let val = parseInt(y/ry ).toString();
-            let dY = y2*ry + SEPARATE;
-
+            let val = parseInt(y).toString();
+            let dY = y*ry + SEPARATE;
             Chart.drawXLine(context, val, dY);
-            context.restore();
             j++;
         }
-
     };
 }
 
@@ -229,7 +219,7 @@ class Graph {
 
     setRatio(){
         // real graph max point relative to Yinterval
-        let  realGraphHeight = getZahlen(Math.max(...this.maxY2), YINTERVAL);
+        const  realGraphHeight = getZahlen(Math.max(...this.maxY2), YINTERVAL);
 
         this.ratio.rx = Graph.getRelationAtoB(this.width, this.num, 1 , PRECISION);
         this.ratio.prx = Graph.getRelationAtoB(this.width, this.num2, 1, PRECISION);
@@ -238,7 +228,6 @@ class Graph {
         this.ratio.realProjectionMaxHeight = realGraphHeight;
         // for sake of precision
         this.ratio.pry = Graph.getRelationAtoB(this.graphHeight, realGraphHeight, 1, PRECISION);
-
     };
 
     addGraph(key, chart){
@@ -251,6 +240,10 @@ class Graph {
     // create a projection
     mutatedGraph({x, width}){
 
+        if(Object.keys(this.charts).length === 0){
+            throw new Error("can't mutate nothing");
+        }
+
         /*Detect control bar position*/
         let start = (x <= 0) ? 0 : x;
         let end = x + width;
@@ -258,7 +251,7 @@ class Graph {
         let x1 = Math.round(this.num * Graph.getRelationAtoB(end, this.width, 1));
         let x0 = Math.round(this.num * Graph.getRelationAtoB(start, this.width, 1));
 
-        // reassing each time
+        // empty each time
         this.maxY2.length = 0;
         this.projection = {};
 
@@ -303,6 +296,9 @@ class Scene {
         this.koef = 0;
         this.buffer = 0;
 
+        this.koef2 = 0;
+        this.buffer2 = 0;
+
         /*FEED*/
         this.colors = colors;
         this.names = names;
@@ -326,7 +322,6 @@ class Scene {
         this.dragok = false;
         this.dragL = false;
         this.dragR = false;
-        this.startX;
 
         canvas.onmousedown = this.myDown.bind(this);
         canvas.onmouseup = this.myUp.bind(this);
@@ -505,6 +500,7 @@ class Scene {
         this.graph.mutatedGraph(this.control);
         this.graph.setRatio();
 
+
         //redraw the scene
         this.draw();
     };
@@ -523,16 +519,19 @@ class Scene {
 
         /*what to do, my son says i m an idiot. little genius. Precision. Svolochi :)*/
         let tmp = Number(((pry-this.buffer)/REDRAW).toFixed(99));
+        let tmp2 = Number((ry-this.buffer2)/REDRAW);
+
+        // ugly - but working and no time for refactoring. but ugly.
         this.koef += tmp;
+        this.koef2 += tmp2;
 
         /*Smooth animation*/
         Object.values(charts).forEach(chart => {
-            chart.draw({rx, ry}, this.context);
+            chart.draw({rx, ry: this.koef2}, this.context);
         });
 
         // draw main canvas
         Object.values(projection).forEach(projection => {
-            console.log(realProjectionMaxHeight);
             projection.draw({rx: prx, ry: this.koef}, this.context, SEPARATE, realProjectionMaxHeight);
         });
 
@@ -548,6 +547,9 @@ class Scene {
             //console.log("STOP");
             this.koef = pry;
             this.buffer = pry;
+
+            this.koef2 = ry;
+            this.buffer2 = ry;
         }
     };
 
@@ -567,7 +569,7 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[4])
+        parseFeed(result[0])
     });
 
 const parseFeed = (feed) => {
@@ -576,6 +578,5 @@ const parseFeed = (feed) => {
     const canvas = new Scene(canavsSize, "mainImg", feed);
     canvas.setControl(new Control(controlSize));
     canvas.setInitialGraph();
-
     canvas.init();
 };
