@@ -4,16 +4,18 @@ import './style.scss';
 const method = "GET";
 const url = "data.json";
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
-const canavsSize = {width: 1200, height: 650};
+const canavsSize = {width: 1200, height: 870};
 const thumbSize = {width: 1200, height: 100};
 const controlSize = {width: 350, height: 100};
-const PROJECTION_HEIGHT = 500;
+const PROJECTION_HEIGHT = 600;
 const buttonSize = {width: "140px", height: "50px"};
+
 const YINTERVAL = 6;
+const REDRAW = 15;
 const AXISOffsetX = 40;
 const AXISOffsetY = 40;
-const CORRELATION = 0.85;
-const PRECISION = 3;
+const CORRELATION = 0.9;
+const PRECISION = 13;
 const SEPARATE = 170;
 
 /*TRANSPORT*/
@@ -46,6 +48,29 @@ const controls = document.getElementById("controls");
 const main = document.getElementById("main");
 
 /* UTILS */
+
+const almostEqual = (a, b, absoluteError, relativeError) => {
+    let d = Math.abs(a - b);
+    if (absoluteError == null) absoluteError = almostEqual.DBL_EPSILON;
+    if (relativeError == null) relativeError = absoluteError;
+    if(d <= absoluteError) {
+        return true
+    }
+    if(d <= relativeError * Math.min(Math.abs(a), Math.abs(b))) {
+        return true
+    }
+    return a === b
+};
+almostEqual.FLT_EPSILON = 1.19209290e-7;
+almostEqual.DBL_EPSILON = 2.2204460492503131e-16;
+
+const getZahlen = (zahlen, intrval = YINTERVAL) => {
+    while(zahlen % intrval !== 0){
+        zahlen++;
+    }
+    return zahlen
+};
+
 const objectWithoutKey = (object, key) => {
     const {[key]: deletedKey, ...otherKeys} = object;
     return otherKeys;
@@ -109,6 +134,21 @@ class Chart {
         this.max = max;
     };
 
+    static drawXLine(context, val, y){
+        /*draw xAxis*/
+        context.beginPath();
+        context.save();
+        context.moveTo(AXISOffsetX, y);
+        context.lineTo(context.canvas.width - AXISOffsetX, y);
+        context.scale(1, -1);
+        context.fillStyle = 'grey';
+        context.fillText(val, AXISOffsetX, -(y + 10));
+        context.lineWidth = 1;
+        context.strokeStyle = 'grey';
+        context.stroke();
+
+    };
+
     static drawAxis(text, {x, y}, context){
         context.save();
         context.scale(1, -1);
@@ -118,8 +158,8 @@ class Chart {
     };
 
     // create single graph
-    draw({ rx, ry }, context, separate = 0){
-        let { color, x, y } = this;
+    draw({ rx, ry }, context, separate = 0, realProjectionMaxHeight ){
+        const { color, x, y } = this;
         context.lineWidth = separate ? 3 : 2;
         context.beginPath();
         context.strokeStyle = color;
@@ -128,12 +168,34 @@ class Chart {
         // LINES
         for (let i = 0, k = x.length; i < k; i++) {
             context.lineTo(i * rx, y[i] * ry + separate);
+            // AXIS
             if (i % Math.round(k/YINTERVAL) === 0 && separate) {
                 let pos = {x: i * rx, y: -(separate - AXISOffsetY)};
                 Chart.drawAxis(getDate(x[i]), pos, context );
             }
         }
+
         context.stroke();
+
+        let j = 0;
+        while(j < YINTERVAL && separate){
+            context.save();
+
+            console.log(realProjectionMaxHeight);
+            // CONCENTRATE
+            // real coordinate to which I must animate
+            let y = j * PROJECTION_HEIGHT/YINTERVAL;
+            let y2 = j * realProjectionMaxHeight/YINTERVAL;
+
+            // real value which is shown to the user
+            let val = parseInt(y/ry ).toString();
+            let dY = y2*ry + SEPARATE;
+
+            Chart.drawXLine(context, val, dY);
+            context.restore();
+            j++;
+        }
+
     };
 }
 
@@ -166,10 +228,17 @@ class Graph {
     };
 
     setRatio(){
-        this.ratio.ry = Graph.getRelationAtoB(this.height, Math.max(...this.maxY), CORRELATION, PRECISION);
+        // real graph max point relative to Yinterval
+        let  realGraphHeight = getZahlen(Math.max(...this.maxY2), YINTERVAL);
+
         this.ratio.rx = Graph.getRelationAtoB(this.width, this.num, 1 , PRECISION);
         this.ratio.prx = Graph.getRelationAtoB(this.width, this.num2, 1, PRECISION);
-        this.ratio.pry = Graph.getRelationAtoB(this.graphHeight, Math.max(...this.maxY2), CORRELATION, PRECISION);
+        // for sake of  simplicity
+        this.ratio.ry = Graph.getRelationAtoB(this.height, Math.max(...this.maxY), CORRELATION, PRECISION);
+        this.ratio.realProjectionMaxHeight = realGraphHeight;
+        // for sake of precision
+        this.ratio.pry = Graph.getRelationAtoB(this.graphHeight, realGraphHeight, 1, PRECISION);
+
     };
 
     addGraph(key, chart){
@@ -340,8 +409,6 @@ class Scene {
         // current mouse position X, yScaled(1, -1);
         const {x: mx, ySc: mySc, y: my} = this.getMousePos(e);
 
-        console.log();
-
 
         leftSide.rect(x, y, 10, height);
         rightSide.rect(width + x - 10, y, 10, height);
@@ -360,6 +427,8 @@ class Scene {
         else if (mx > x && mx < x + width && my && mySc-height < y) {
             this.dragok = true;
             this.control.isDragging = true;
+        } else if(mySc-height > y){
+            console.log("draw a line here");
         }
 
         // save the current mouse position
@@ -384,32 +453,6 @@ class Scene {
     };
 
     /*DRAWING*/
-    drawXLine(){
-        this.context.lineWidth = 1;
-        this.context.strokeStyle = 'grey';
-        this.context.fillStyle = 'grey';
-        let { pry } = this.graph.ratio;
-
-        /*draw xAxis*/
-        for (let j = 0; j < YINTERVAL; j++) {
-            this.context.save();
-            let y = CORRELATION * j * this.graph.graphHeight / YINTERVAL;
-            let val = parseInt(y / pry).toString();
-            let dY = y + SEPARATE;
-
-            /*draw xAxis*/
-            this.context.beginPath();
-            this.context.moveTo(AXISOffsetX, dY);
-
-            this.context.lineTo(this.graph.width - AXISOffsetX, dY);
-            this.context.scale(1, -1);
-
-            this.context.fillText(val, AXISOffsetX, -(dY + 10));
-            this.context.stroke();
-            this.context.restore();
-        }
-
-    };
 
     // get Mouse Position
     getMousePos(evt){
@@ -471,40 +514,38 @@ class Scene {
         this.clearCanvas();
         // draw control
         this.control.draw(this.context);
-        this.drawXLine();
 
-        /*Smooth animation*/
-        let {charts, ratio: {prx, pry, rx, ry}, projection} = this.graph;
-        let buffer = Number(Math.abs(((pry-this.buffer)/15)).toPrecision(5));
+        let {charts, ratio: {prx, pry, rx, ry, realProjectionMaxHeight}, projection} = this.graph;
 
-        // what to do, my son says i m an idiot. little genius
-        /*precision. svolochi :)*/
-        if(this.koef <= pry){
-            this.koef += buffer;
-            if(this.koef > pry){
-                this.animateContinue = false;
-            }
-        } else {
-            this.koef -= buffer;
-            if(this.koef < pry){
-                this.animateContinue = false;
-            }
+        if(almostEqual(this.koef, pry, almostEqual.DBL_EPSILON, almostEqual.DBL_EPSILON)){
+            this.animateContinue = false;
         }
 
+        /*what to do, my son says i m an idiot. little genius. Precision. Svolochi :)*/
+        let tmp = Number(((pry-this.buffer)/REDRAW).toFixed(99));
+        this.koef += tmp;
+
+        /*Smooth animation*/
         Object.values(charts).forEach(chart => {
             chart.draw({rx, ry}, this.context);
         });
 
         // draw main canvas
         Object.values(projection).forEach(projection => {
-            projection.draw({rx: prx, ry: this.koef}, this.context, SEPARATE);
+            console.log(realProjectionMaxHeight);
+            projection.draw({rx: prx, ry: this.koef}, this.context, SEPARATE, realProjectionMaxHeight);
         });
+
+        // what to do, my son says i m an idiot. little genius
+        if( tmp > 0 && this.koef > pry || tmp < 0 && this.koef < pry){
+            this.animateContinue = false;
+        }
 
         if(this.animateContinue) {
             requestAnimationFrame(this.draw);
-            console.log("RUN")
+            //console.log("RUN")
         } else {
-            console.log("STOP");
+            //console.log("STOP");
             this.koef = pry;
             this.buffer = pry;
         }
@@ -526,7 +567,7 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[0])
+        parseFeed(result[4])
     });
 
 const parseFeed = (feed) => {
