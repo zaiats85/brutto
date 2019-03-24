@@ -13,7 +13,7 @@ const YINTERVAL = 6;
 const AXISOffsetX = 40;
 const AXISOffsetY = 40;
 const CORRELATION = 0.85;
-const PRECISION = 3;
+const PRECISION = 13;
 const SEPARATE = 170;
 
 /*TRANSPORT*/
@@ -46,6 +46,25 @@ const controls = document.getElementById("controls");
 const main = document.getElementById("main");
 
 /* UTILS */
+
+function almostEqual(a, b, absoluteError, relativeError) {
+    let d = Math.abs(a - b);
+
+    if (absoluteError == null) absoluteError = almostEqual.DBL_EPSILON;
+    if (relativeError == null) relativeError = absoluteError;
+
+    if(d <= absoluteError) {
+        return true
+    }
+    if(d <= relativeError * Math.min(Math.abs(a), Math.abs(b))) {
+        return true
+    }
+    return a === b
+}
+
+almostEqual.FLT_EPSILON = 1.19209290e-7;
+almostEqual.DBL_EPSILON = 2.2204460492503131e-16;
+
 const objectWithoutKey = (object, key) => {
     const {[key]: deletedKey, ...otherKeys} = object;
     return otherKeys;
@@ -147,10 +166,10 @@ class Chart {
                 let pos = {x: i * rx, y: -(separate - AXISOffsetY)};
                 Chart.drawAxis(getDate(x[i]), pos, context );
             }
-
         }
 
         context.stroke();
+
         let j = 0;
         while(j < YINTERVAL && separate){
             context.save();
@@ -476,20 +495,13 @@ class Scene {
         this.control.draw(this.context);
 
         let {charts, ratio: {prx, pry, rx, ry}, projection} = this.graph;
-        let buffer = Number(Math.abs(((pry-this.buffer)/15)).toPrecision(5));
+
+        if(almostEqual(this.koef, pry, almostEqual.FLT_EPSILON, almostEqual.FLT_EPSILON)){
+            this.animateContinue = false;
+        }
 
         /*what to do, my son says i m an idiot. little genius. Precision. Svolochi :)*/
-        if(this.koef <= pry){
-            this.koef += buffer;
-            if(this.koef > pry){
-                this.animateContinue = false;
-            }
-        } else {
-            this.koef -= buffer;
-            if(this.koef < pry){
-                this.animateContinue = false;
-            }
-        }
+        this.koef += Number(((pry-this.buffer)/15).toPrecision(PRECISION));
 
         /*Smooth animation*/
         Object.values(charts).forEach(chart => {
@@ -527,7 +539,7 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[0])
+        parseFeed(result[4])
     });
 
 const parseFeed = (feed) => {
@@ -539,24 +551,3 @@ const parseFeed = (feed) => {
 
     canvas.init();
 };
-/*
-
-
-for (let j = 0; j < YINTERVAL; j++) {
-    this.context.save();
-    let y = j * this.graph.graphHeight / YINTERVAL;
-
-    let val = parseInt(y / this.graph.ratio.pry).toString();
-    let dY = y*this.koef + SEPARATE;
-
-    /!*draw xAxis*!/
-    this.context.beginPath();
-    this.context.moveTo(AXISOffsetX, dY);
-
-    this.context.lineTo(this.graph.width - AXISOffsetX, dY);
-    this.context.scale(1, -1);
-
-    this.context.fillText(val, AXISOffsetX, -(dY + 10));
-    this.context.stroke();
-    this.context.restore();
-}*/
