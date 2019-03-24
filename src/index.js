@@ -97,21 +97,31 @@ class Control {
         this.fill = "white";
         this.isDragging = false;
         this.isResizing = false;
+        this.mode = {
+            day: {
+                scroll: "white",
+                border: "grey",
+                track: "#f5f5f5"
+            },
+            night: {
+                scroll: "#192849",
+                border: "lightgrey",
+                track: "#192831"
+            }
+        }
     };
 
     // create draggable && resizable rectangle
-    draw(context){
-
+    draw(context, night){
+        // Awfull but no time left.
+        const { scroll, border, track } =  this.mode[night ? "night" : "day"];
         const { x, y, width, height } = this;
+        context.fillStyle = track;
 
-        //context.fillStyle ="#f5f5f5";
-        context.fillStyle ="#192831";
         context.fillRect(0, y, context.canvas.width, height);
-
         context.beginPath();
 
-        //context.fillStyle ="white";
-        context.fillStyle ="#192849";
+        context.fillStyle = scroll;
 
         context.rect(x, y, width, height);
         context.closePath();
@@ -119,7 +129,7 @@ class Control {
 
         // set draggable edges color
         //context.fillStyle ="lightgrey";
-        context.fillStyle ="grey";
+        context.fillStyle = border;
         context.fillRect(x, y, 10, height);
         context.fillRect(width + x - 10, y, 10, height);
 
@@ -291,6 +301,11 @@ class Scene {
         this.graph = new Graph(thumbSize);
         this.control = {};
         this.buttons = [];
+        this.night = false;
+        this.mode = {
+            day:"white",
+            night: "#21263a"
+        };
 
         /*ANIMATION*/
         this.animateContinue = true;
@@ -332,6 +347,10 @@ class Scene {
 
     }
 
+    set(key, val){
+        this[key] = val;
+    }
+
     setInitialGraph(){
         // Form Graphs
         let x = this.columns.find(col => col.includes("x")).filter(item => !isNaN(item)).map(getDate);
@@ -354,7 +373,7 @@ class Scene {
             this.addButton({color: this.colors[key], id: key, label: value, size: buttonSize });
         });
 
-        this.addButton({color: "#FFFDD0", id: "nightMode", label: "NightMode", size: buttonSize});
+        this.addButton({color: "#9ad7db", id: "nightMode", label: "Night Mode", size: buttonSize});
 
         this.graph.mutatedGraph(this.control);
     }
@@ -475,7 +494,7 @@ class Scene {
         button.style.background = color;
         button.style.width = width;
         button.style.height = height;
-        if(label === "NightMode"){
+        if(label === "Night Mode"){
             button.onclick = this.nightMode.bind(this);
         } else {
             button.onclick = this.toggleGraph.bind(this);
@@ -484,7 +503,10 @@ class Scene {
     };
 
     nightMode(evt){
-        console.log(this);
+        this.set("night", !this.night);
+        evt.target.innerText = this.night ?  "Night Mode" : "Day mode";
+        document.body.classList.toggle("night");
+        this.draw();
     }
 
     // delete graph from feed canvas
@@ -526,12 +548,13 @@ class Scene {
     /*Canvas manipulations*/
     draw(){
         this.clearCanvas();
+
         // nightMode toggle
-        this.context.fillStyle = "#21263a";
+        this.context.fillStyle = this.night ? this.mode.night : this.mode.day;
         this.context.fillRect(0, 0, this.context.canvas.width, this.context.canvas.height);
 
         // draw control
-        this.control.draw(this.context);
+        this.control.draw(this.context, this.night);
 
         let {
             charts,

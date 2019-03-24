@@ -2,9 +2,9 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  .night {
-    background-color: #21263a;
-  }
+}
+.night {
+  background-color: #21263a;
 }
 
 #mainImg, #helper {
@@ -22,5 +22,5 @@ canvas #mainImg{
 }
 
 button {
-  border-radius: 32px;
+  border-radius: 22px;
 }
