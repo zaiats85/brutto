@@ -14,7 +14,7 @@ const YINTERVAL = 6;
 const REDRAW = 15;
 const AXISOffsetX = 40;
 const AXISOffsetY = 40;
-const CORRELATION = 0.9;
+const CORRELATION = 1;
 const PRECISION = 13;
 const SEPARATE = 170;
 
@@ -239,10 +239,6 @@ class Graph {
     };
     // create a projection
     mutatedGraph({x, width}){
-
-        if(Object.keys(this.charts).length === 0){
-            throw new Error("can't mutate nothing");
-        }
 
         /*Detect control bar position*/
         let start = (x <= 0) ? 0 : x;
@@ -481,6 +477,9 @@ class Scene {
         const { charts, maxY, deleted } = this.graph;
         const tmp = charts[key];
         const tmpDel = deleted[key];
+        if(tmp){
+            tmp.tmpDel = true;
+        }
 
         /*@TODO toggle buttons with SVG*/
         if (key in charts) {
@@ -496,10 +495,13 @@ class Scene {
             evt.target.style.backgroundColor = tmpDel.color;
         }
 
+        if(Object.keys(this.graph.charts).length === 0){
+            throw new Error("can't mutate nothing");
+        }
+
         this.animateContinue = true;
         this.graph.mutatedGraph(this.control);
         this.graph.setRatio();
-
 
         //redraw the scene
         this.draw();
@@ -511,7 +513,11 @@ class Scene {
         // draw control
         this.control.draw(this.context);
 
-        let {charts, ratio: {prx, pry, rx, ry, realProjectionMaxHeight}, projection} = this.graph;
+        let {
+            charts,
+            ratio: {prx, pry, rx, ry, realProjectionMaxHeight},
+            projection,
+        } = this.graph;
 
         if(almostEqual(this.koef, pry, almostEqual.DBL_EPSILON, almostEqual.DBL_EPSILON)){
             this.animateContinue = false;
@@ -527,7 +533,11 @@ class Scene {
 
         /*Smooth animation*/
         Object.values(charts).forEach(chart => {
-            chart.draw({rx, ry: this.koef2}, this.context);
+            ry = (chart.tmpDel) ? this.graph.ratio.ry : this.koef2;
+            if(!this.animateContinue){
+                chart.tmpDel = false;
+            }
+            chart.draw({rx, ry}, this.context);
         });
 
         // draw main canvas
@@ -569,7 +579,7 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[0])
+        parseFeed(result[1])
     });
 
 const parseFeed = (feed) => {
