@@ -567,7 +567,7 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[0])
+        parseFeed(result[4])
     });
 
 const parseFeed = (feed) => {
