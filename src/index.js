@@ -503,7 +503,6 @@ class Scene {
         this.graph.mutatedGraph(this.control);
         this.graph.setRatio();
 
-
         //redraw the scene
         this.draw();
     };
@@ -580,7 +579,7 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[4])
+        parseFeed(result[1])
     });
 
 const parseFeed = (feed) => {
