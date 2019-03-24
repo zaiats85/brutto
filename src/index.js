@@ -14,7 +14,7 @@ const YINTERVAL = 6;
 const REDRAW = 15;
 const AXISOffsetX = 40;
 const AXISOffsetY = 40;
-const CORRELATION = 0.9;
+const CORRELATION = 1;
 const PRECISION = 13;
 const SEPARATE = 170;
 
