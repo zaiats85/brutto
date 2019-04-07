@@ -27,6 +27,9 @@ body {
   transform: scale(1, -1);
 }
 
+#main {
+  text-align: center;
+}
 #helper {
   margin-top: 50px;
   margin-bottom: 50px;
@@ -43,14 +46,15 @@ canvas #mainImg{
   border: 2px solid cadetblue;
 }
 
-#controls {
+
   button {
     border-radius: 22px;
     margin: 0 20px;
     color: white;
+    margin-top: 50px;
+
   }
-  margin-top: 50px;
-}
+
 
 .load {
   button {

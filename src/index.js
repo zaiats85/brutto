@@ -1,17 +1,17 @@
 import './style.scss';
 
 /*INPUT & COFIG*/
-let fg = window.innerWidth;
-console.log(fg);
+const screenWidth = window.innerWidth;
+const screenHeight = window.innerHeight;
 
 const method = "GET";
 const url = "data.json";
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
-const canavsSize = {width: 0.95*fg, height: 870};
-const thumbSize = {width: 0.95*fg, height: 100};
-const controlSize = {width: 350, height: 100};
+const canavsSize = {width: 0.9*screenWidth, height: screenHeight*0.9};
+const thumbSize = {width: 0.9*screenWidth, height: 70};
+const controlSize = {width: 0.2*screenWidth, height: 70};
 const PROJECTION_HEIGHT = 600;
-const buttonSize = {width: "140px", height: "50px"};
+const buttonSize = {width: `${0.2*screenWidth}px`, height: `${0.05*screenHeight}px`};
 const nightModeButtoSize = {width: "240px", height: "50px"};
 const MODE = {
     day: {
@@ -32,7 +32,7 @@ const AXISOffsetX = 5;
 const AXISOffsetY = 40;
 const CORRELATION = 0.9;
 const PRECISION = 13;
-const SEPARATE = 170;
+const SEPARATE = 130;
 
 /*TRANSPORT*/
 function getJson(method, url) {
@@ -106,13 +106,11 @@ const getDate = timestamp => {
 /* CONTROL */
 class Control {
     constructor({width, height} = {width: 350, height: 100}) {
-        this.x = 850;
+        this.x = width;
         this.y = 8;
         this.width = width;
         this.height = height;
         this.fill = "white";
-        this.isDragging = false;
-        this.isResizing = false;
         this.mode = MODE;
     };
 
@@ -231,10 +229,6 @@ class Graph {
         this[key] = val;
     }
 
-    get(key){
-        return this[key];
-    }
-
     add(key, val){
         this[key].push(val);
     };
@@ -261,7 +255,6 @@ class Graph {
     };
     // create a projection
     mutatedGraph({x, width}){
-
         /*Detect control bar position*/
         let start = (x <= 0) ? 0 : x;
         let end = x + width;
@@ -277,8 +270,8 @@ class Graph {
             let projection = deepClone(value);
             projection.y = value.y.slice(x0, x1);
             projection.x = value.x.slice(x0, x1);
-            projection.max = Math.max(...projection.y);
 
+            projection.max = Math.max(...projection.y);
             this.add("maxY2", projection.max);
 
             // create charts
@@ -303,7 +296,7 @@ class Graph {
 
 /* CANVAS */
 class Scene {
-    constructor(size = {width: 1200, height: 650}, id, {colors, names, types, columns} ) {
+    constructor(size = {width: fg, height: 650}, id, {colors, names, types, columns} ) {
         this.graph = new Graph(thumbSize);
         this.control = {};
         this.buttons = [];
@@ -315,7 +308,7 @@ class Scene {
 
         /*ANIMATION*/
         this.animateContinue = true;
-        // set initial coef
+        // set initial koef
         this.koef = 0;
         this.buffer = 0;
 
@@ -339,7 +332,7 @@ class Scene {
 
         /*CONTEXT*/
         this.context = canvas.getContext('2d');
-        this.context.font = "18px Arial";
+        this.context.font = "12px Arial";
 
         /* EVENTS */
         // listen for mouse events
@@ -348,10 +341,12 @@ class Scene {
         this.dragR = false;
 
         canvas.onmousedown = this.myDown.bind(this);
+        canvas.ontouchstart = this.myDown.bind(this);
         canvas.onmouseup = this.myUp.bind(this);
+        canvas.ontouchend = this.myUp.bind(this);
         canvas.onmousemove = this.myMove.bind(this);
+        canvas.ontouchmove = this.myMove.bind(this);
         this.draw = this.draw.bind(this);
-
     }
 
     set(key, val){
@@ -387,6 +382,7 @@ class Scene {
 
     /*EVENT CALLBACKS*/
     myMove(e){
+
         // if we're dragging || resizing anything...
         if (this.dragok || this.dragL || this.dragR) {
             e.preventDefault();
@@ -433,7 +429,6 @@ class Scene {
 
         // current mouse position X, yScaled(1, -1);
         const {x: mx, ySc: mySc, y: my} = this.getMousePos(e);
-
 
         leftSide.rect(x, y, 10, height);
         rightSide.rect(width + x - 10, y, 10, height);
@@ -482,6 +477,13 @@ class Scene {
     // get Mouse Position
     getMousePos(evt){
         let rect = this.el.getBoundingClientRect();
+        if(evt.constructor.name === "TouchEvent") {
+            return {
+                x: evt.touches[0].clientX - rect.left,
+                y: evt.touches[0].clientY - rect.top,
+                ySc: rect.bottom - evt.touches[0].clientY
+            };
+        }
         return {
             x: evt.clientX - rect.left,
             y: evt.clientY - rect.top,
@@ -501,6 +503,12 @@ class Scene {
         button.style.background = color;
         button.style.width = width;
         button.style.height = height;
+
+        if(label === "Night Mode"){
+            button.onclick = this.nightMode.bind(this);
+        } else {
+            button.onclick = this.toggleGraph.bind(this);
+        }
         this.controls.appendChild(button);
     };
 
@@ -614,7 +622,6 @@ class Scene {
         this.buttons.forEach(this.drawButton.bind(this));
         this.buttons.push();
         this.graph.setRatio();
-
         main.appendChild(this.el);
         main.appendChild(this.controls);
 
@@ -630,12 +637,12 @@ async function init() {
 
 init()
     .then(result => {
+
         parseFeed(result);
-        window.result = result;
+
     });
 
-
-window.parseFeed = (feed) => {
+const parseFeed = (feed) => {
     for(let i = 0, k = feed.length; i < k; i++){
         /*CANVAS*/
         const canvas = new Scene(canavsSize, "mainImg", feed[i]);
