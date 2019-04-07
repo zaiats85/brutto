@@ -7,9 +7,9 @@ const screenHeight = window.innerHeight;
 const method = "GET";
 const url = "data.json";
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
-const canavsSize = {width: 0.9*screenWidth, height: screenHeight*0.9};
+const canavsSize = {width: 0.9*screenWidth, height: screenHeight};
 const thumbSize = {width: 0.9*screenWidth, height: 70};
-const controlSize = {width: 0.2*screenWidth, height: 70};
+const controlSize = {width: 0.45*screenWidth, height: 70};
 const PROJECTION_HEIGHT = 600;
 const buttonSize = {width: `${0.2*screenWidth}px`, height: `${0.05*screenHeight}px`};
 const nightModeButtoSize = {width: "240px", height: "50px"};
@@ -64,6 +64,22 @@ const controls = document.getElementById("controls");
 const main = document.getElementById("main");
 
 /* UTILS */
+const commarize = (min, number) => {
+    min = min || 1e3;
+    // Alter numbers larger than 1k
+    if (number >= min) {
+        let units = ["K", "M", "B", "T"];
+        let order = Math.floor(Math.log(number) / Math.log(1000));
+        let unitname = units[(order - 1)];
+        let num = Math.floor(number / 1000 ** order);
+        // output number remainder + unitname
+        return num + unitname
+    }
+
+    // return formatted original number
+    return number.toLocaleString();
+};
+
 
 const almostEqual = (a, b, absoluteError, relativeError) => {
     let d = Math.abs(a - b);
@@ -181,7 +197,7 @@ class Chart {
     // create single graph
     draw({ rx, ry }, context, separate = 0, realProjectionMaxHeight ){
         const { color, x, y } = this;
-        context.lineWidth = separate ? 3 : 2;
+        context.lineWidth = separate ? 2 : 1;
         context.beginPath();
         context.strokeStyle = color;
         context.lineJoin = 'round';
@@ -203,7 +219,9 @@ class Chart {
             // real value which is shown to the user
             let val = parseInt(y).toString();
             let dY = y*ry + SEPARATE;
-            Chart.drawXLine(context, val, dY);
+
+            Chart.drawXLine(context, commarize(1000, Number(val)), dY);
+
             j++;
         }
     };
@@ -328,6 +346,7 @@ class Scene {
             canvas.id = id;
 
         this.controls = document.createElement('div');
+        this.controls.setAttribute('class', 'control');
         this.el = canvas;
 
         /*CONTEXT*/
@@ -375,7 +394,7 @@ class Scene {
             this.addButton({color: this.colors[key], id: key, label: value, size: buttonSize });
         });
 
-        this.addButton({color: "#9ad7db", id: "nightMode", label: "Night Mode", size: nightModeButtoSize});
+        //this.addButton({color: "#9ad7db", id: "nightMode", label: "Night Mode", size: nightModeButtoSize});
 
         this.graph.mutatedGraph(this.control);
     }
