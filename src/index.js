@@ -1,11 +1,14 @@
 import './style.scss';
 
 /*INPUT & COFIG*/
+let fg = window.innerWidth;
+console.log(fg);
+
 const method = "GET";
 const url = "data.json";
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
-const canavsSize = {width: 1200, height: 870};
-const thumbSize = {width: 1200, height: 100};
+const canavsSize = {width: 0.95*fg, height: 870};
+const thumbSize = {width: 0.95*fg, height: 100};
 const controlSize = {width: 350, height: 100};
 const PROJECTION_HEIGHT = 600;
 const buttonSize = {width: "140px", height: "50px"};
@@ -21,7 +24,7 @@ const MODE = {
         border: "grey",
         track: "#192831"
     }
-}
+};
 
 const YINTERVAL = 6;
 const REDRAW = 15;
@@ -118,6 +121,7 @@ class Control {
         // Awfull but no time left.
         const { scroll, border, track } =  this.mode[night ? "night" : "day"];
         const { x, y, width, height } = this;
+
         context.fillStyle = track;
 
         context.fillRect(0, y, context.canvas.width, height);
@@ -330,6 +334,7 @@ class Scene {
             canvas.height = size.height;
             canvas.id = id;
 
+        this.controls = document.createElement('div');
         this.el = canvas;
 
         /*CONTEXT*/
@@ -496,12 +501,7 @@ class Scene {
         button.style.background = color;
         button.style.width = width;
         button.style.height = height;
-        if(label === "Night Mode"){
-            button.onclick = this.nightMode.bind(this);
-        } else {
-            button.onclick = this.toggleGraph.bind(this);
-        }
-        controls.appendChild(button);
+        this.controls.appendChild(button);
     };
 
     nightMode(evt){
@@ -611,10 +611,13 @@ class Scene {
     };
 
     init() {
-        main.appendChild(this.el);
         this.buttons.forEach(this.drawButton.bind(this));
         this.buttons.push();
         this.graph.setRatio();
+
+        main.appendChild(this.el);
+        main.appendChild(this.controls);
+
         this.draw();
     }
 }
@@ -627,17 +630,17 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[0]);
+        parseFeed(result);
         window.result = result;
     });
 
-/*IDIOTIZM. But no time for passing. SHOW PURPOSE ONLY*/
+
 window.parseFeed = (feed) => {
-    document.getElementById("main").innerHTML = null;
-    document.getElementById("controls").innerHTML = null;
-    /*CANVAS*/
-    const canvas = new Scene(canavsSize, "mainImg", feed);
-    canvas.setControl(new Control(controlSize));
-    canvas.setInitialGraph();
-    canvas.init();
-}
+    for(let i = 0, k = feed.length; i < k; i++){
+        /*CANVAS*/
+        const canvas = new Scene(canavsSize, "mainImg", feed[i]);
+        canvas.setControl(new Control(controlSize));
+        canvas.setInitialGraph();
+        canvas.init();
+    }
+};
