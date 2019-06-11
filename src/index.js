@@ -8,9 +8,9 @@ const method = "GET";
 const url = "data.json";
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
 const canavsSize = {width: 0.9*screenWidth, height: screenHeight};
-const thumbSize = {width: 0.9*screenWidth, height: 70};
-const controlSize = {width: 0.45*screenWidth, height: 70};
-const PROJECTION_HEIGHT = 600;
+const thumbSize = {width: 0.9*screenWidth, height: 60};
+const controlSize = {width: 0.45*screenWidth, height: 60};
+const PROJECTION_HEIGHT = 0.5 * screenHeight;
 const buttonSize = {width: `${0.2*screenWidth}px`, height: `${0.05*screenHeight}px`};
 const nightModeButtoSize = {width: "240px", height: "50px"};
 const MODE = {
@@ -32,7 +32,7 @@ const AXISOffsetX = 5;
 const AXISOffsetY = 40;
 const CORRELATION = 0.9;
 const PRECISION = 13;
-const SEPARATE = 130;
+const SEPARATE = 120;
 
 /*TRANSPORT*/
 function getJson(method, url) {
@@ -404,9 +404,6 @@ class Scene {
 
         // if we're dragging || resizing anything...
         if (this.dragok || this.dragL || this.dragR) {
-            e.preventDefault();
-            e.stopPropagation();
-
             let {x, isDragging} = this.control;
             // current mouse position X
             let {x: mx} = this.getMousePos(e);
@@ -437,11 +434,7 @@ class Scene {
     }
 
     myDown(e){
-        e.preventDefault();
-        e.stopPropagation();
-
         const {x, y, width, height} = this.control;
-
         // left n right resizable areas
         const leftSide = new Path2D();
         const rightSide = new Path2D();
@@ -475,8 +468,6 @@ class Scene {
     }
 
     myUp(e){
-        e.preventDefault();
-        e.stopPropagation();
         /*shut it down*/
         this.dragok = this.dragL = this.dragR = false;
         this.control.isDragging = this.control.isResizing = false;
@@ -656,9 +647,7 @@ async function init() {
 
 init()
     .then(result => {
-
         parseFeed(result);
-
     });
 
 const parseFeed = (feed) => {
