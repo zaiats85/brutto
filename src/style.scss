@@ -2,6 +2,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin: 0;
+  padding: 0;
   .load {
     margin: 45px;
     button {
@@ -11,6 +13,9 @@ body {
       margin: 10px;
     }
   }
+}
+.control {
+  text-align: left;
 }
 .night {
   background-color: #21263a !important;
@@ -27,6 +32,11 @@ body {
   transform: scale(1, -1);
 }
 
+#main {
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
 #helper {
   margin-top: 50px;
   margin-bottom: 50px;
@@ -38,39 +48,22 @@ span {
   text-align: left;
 }
 
-canvas #mainImg{
-  padding: 100px;
-  border: 2px solid cadetblue;
+canvas {
+  margin-top: 25px;
 }
 
-#controls {
-  button {
-    border-radius: 22px;
-    margin: 0 20px;
-    color: white;
-  }
-  margin-top: 50px;
+button {
+  border-radius: 22px;
+  color: white;
+  margin-top: 20px;
+  margin-right: 10px;
 }
+
 
 .load {
   button {
     border-radius: 22px !important;
     color: white;
     font-weight: bold;
-  }
-  .one {
-    background-color: crimson;
-  }
-  .two {
-    background-color:cornflowerblue;
-  }
-  .three {
-    background-color: darkslateblue;
-  }
-  .four {
-    background-color: cadetblue;
-  }
-  .five {
-    background-color: peru;
   }
 }

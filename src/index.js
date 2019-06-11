@@ -1,14 +1,17 @@
 import './style.scss';
 
 /*INPUT & COFIG*/
+const screenWidth = window.innerWidth;
+const screenHeight = window.innerHeight;
+
 const method = "GET";
 const url = "data.json";
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
-const canavsSize = {width: 1200, height: 870};
-const thumbSize = {width: 1200, height: 100};
-const controlSize = {width: 350, height: 100};
-const PROJECTION_HEIGHT = 600;
-const buttonSize = {width: "140px", height: "50px"};
+const canavsSize = {width: 0.9*screenWidth, height: screenHeight};
+const thumbSize = {width: 0.9*screenWidth, height: 60};
+const controlSize = {width: 0.45*screenWidth, height: 60};
+const PROJECTION_HEIGHT = 0.5 * screenHeight;
+const buttonSize = {width: `${0.2*screenWidth}px`, height: `${0.05*screenHeight}px`};
 const nightModeButtoSize = {width: "240px", height: "50px"};
 const MODE = {
     day: {
@@ -21,7 +24,7 @@ const MODE = {
         border: "grey",
         track: "#192831"
     }
-}
+};
 
 const YINTERVAL = 6;
 const REDRAW = 15;
@@ -29,7 +32,7 @@ const AXISOffsetX = 5;
 const AXISOffsetY = 40;
 const CORRELATION = 0.9;
 const PRECISION = 13;
-const SEPARATE = 170;
+const SEPARATE = 120;
 
 /*TRANSPORT*/
 function getJson(method, url) {
@@ -61,6 +64,22 @@ const controls = document.getElementById("controls");
 const main = document.getElementById("main");
 
 /* UTILS */
+const commarize = (min, number) => {
+    min = min || 1e3;
+    // Alter numbers larger than 1k
+    if (number >= min) {
+        let units = ["K", "M", "B", "T"];
+        let order = Math.floor(Math.log(number) / Math.log(1000));
+        let unitname = units[(order - 1)];
+        let num = Math.floor(number / 1000 ** order);
+        // output number remainder + unitname
+        return num + unitname
+    }
+
+    // return formatted original number
+    return number.toLocaleString();
+};
+
 
 const almostEqual = (a, b, absoluteError, relativeError) => {
     let d = Math.abs(a - b);
@@ -103,13 +122,11 @@ const getDate = timestamp => {
 /* CONTROL */
 class Control {
     constructor({width, height} = {width: 350, height: 100}) {
-        this.x = 850;
+        this.x = width;
         this.y = 8;
         this.width = width;
         this.height = height;
         this.fill = "white";
-        this.isDragging = false;
-        this.isResizing = false;
         this.mode = MODE;
     };
 
@@ -118,6 +135,7 @@ class Control {
         // Awfull but no time left.
         const { scroll, border, track } =  this.mode[night ? "night" : "day"];
         const { x, y, width, height } = this;
+
         context.fillStyle = track;
 
         context.fillRect(0, y, context.canvas.width, height);
@@ -179,7 +197,7 @@ class Chart {
     // create single graph
     draw({ rx, ry }, context, separate = 0, realProjectionMaxHeight ){
         const { color, x, y } = this;
-        context.lineWidth = separate ? 3 : 2;
+        context.lineWidth = separate ? 2 : 1;
         context.beginPath();
         context.strokeStyle = color;
         context.lineJoin = 'round';
@@ -201,7 +219,9 @@ class Chart {
             // real value which is shown to the user
             let val = parseInt(y).toString();
             let dY = y*ry + SEPARATE;
-            Chart.drawXLine(context, val, dY);
+
+            Chart.drawXLine(context, commarize(1000, Number(val)), dY);
+
             j++;
         }
     };
@@ -225,10 +245,6 @@ class Graph {
 
     set(key, val){
         this[key] = val;
-    }
-
-    get(key){
-        return this[key];
     }
 
     add(key, val){
@@ -257,7 +273,6 @@ class Graph {
     };
     // create a projection
     mutatedGraph({x, width}){
-
         /*Detect control bar position*/
         let start = (x <= 0) ? 0 : x;
         let end = x + width;
@@ -273,8 +288,8 @@ class Graph {
             let projection = deepClone(value);
             projection.y = value.y.slice(x0, x1);
             projection.x = value.x.slice(x0, x1);
-            projection.max = Math.max(...projection.y);
 
+            projection.max = Math.max(...projection.y);
             this.add("maxY2", projection.max);
 
             // create charts
@@ -299,7 +314,7 @@ class Graph {
 
 /* CANVAS */
 class Scene {
-    constructor(size = {width: 1200, height: 650}, id, {colors, names, types, columns} ) {
+    constructor(size = {width: fg, height: 650}, id, {colors, names, types, columns} ) {
         this.graph = new Graph(thumbSize);
         this.control = {};
         this.buttons = [];
@@ -311,7 +326,7 @@ class Scene {
 
         /*ANIMATION*/
         this.animateContinue = true;
-        // set initial coef
+        // set initial koef
         this.koef = 0;
         this.buffer = 0;
 
@@ -330,11 +345,13 @@ class Scene {
             canvas.height = size.height;
             canvas.id = id;
 
+        this.controls = document.createElement('div');
+        this.controls.setAttribute('class', 'control');
         this.el = canvas;
 
         /*CONTEXT*/
         this.context = canvas.getContext('2d');
-        this.context.font = "18px Arial";
+        this.context.font = "12px Arial";
 
         /* EVENTS */
         // listen for mouse events
@@ -343,10 +360,12 @@ class Scene {
         this.dragR = false;
 
         canvas.onmousedown = this.myDown.bind(this);
+        canvas.ontouchstart = this.myDown.bind(this);
         canvas.onmouseup = this.myUp.bind(this);
+        canvas.ontouchend = this.myUp.bind(this);
         canvas.onmousemove = this.myMove.bind(this);
+        canvas.ontouchmove = this.myMove.bind(this);
         this.draw = this.draw.bind(this);
-
     }
 
     set(key, val){
@@ -375,18 +394,16 @@ class Scene {
             this.addButton({color: this.colors[key], id: key, label: value, size: buttonSize });
         });
 
-        this.addButton({color: "#9ad7db", id: "nightMode", label: "Night Mode", size: nightModeButtoSize});
+        //this.addButton({color: "#9ad7db", id: "nightMode", label: "Night Mode", size: nightModeButtoSize});
 
         this.graph.mutatedGraph(this.control);
     }
 
     /*EVENT CALLBACKS*/
     myMove(e){
+
         // if we're dragging || resizing anything...
         if (this.dragok || this.dragL || this.dragR) {
-            e.preventDefault();
-            e.stopPropagation();
-
             let {x, isDragging} = this.control;
             // current mouse position X
             let {x: mx} = this.getMousePos(e);
@@ -417,18 +434,13 @@ class Scene {
     }
 
     myDown(e){
-        e.preventDefault();
-        e.stopPropagation();
-
         const {x, y, width, height} = this.control;
-
         // left n right resizable areas
         const leftSide = new Path2D();
         const rightSide = new Path2D();
 
         // current mouse position X, yScaled(1, -1);
         const {x: mx, ySc: mySc, y: my} = this.getMousePos(e);
-
 
         leftSide.rect(x, y, 10, height);
         rightSide.rect(width + x - 10, y, 10, height);
@@ -456,8 +468,6 @@ class Scene {
     }
 
     myUp(e){
-        e.preventDefault();
-        e.stopPropagation();
         /*shut it down*/
         this.dragok = this.dragL = this.dragR = false;
         this.control.isDragging = this.control.isResizing = false;
@@ -477,6 +487,13 @@ class Scene {
     // get Mouse Position
     getMousePos(evt){
         let rect = this.el.getBoundingClientRect();
+        if(evt.constructor.name === "TouchEvent") {
+            return {
+                x: evt.touches[0].clientX - rect.left,
+                y: evt.touches[0].clientY - rect.top,
+                ySc: rect.bottom - evt.touches[0].clientY
+            };
+        }
         return {
             x: evt.clientX - rect.left,
             y: evt.clientY - rect.top,
@@ -496,12 +513,13 @@ class Scene {
         button.style.background = color;
         button.style.width = width;
         button.style.height = height;
+
         if(label === "Night Mode"){
             button.onclick = this.nightMode.bind(this);
         } else {
             button.onclick = this.toggleGraph.bind(this);
         }
-        controls.appendChild(button);
+        this.controls.appendChild(button);
     };
 
     nightMode(evt){
@@ -611,10 +629,12 @@ class Scene {
     };
 
     init() {
-        main.appendChild(this.el);
         this.buttons.forEach(this.drawButton.bind(this));
         this.buttons.push();
         this.graph.setRatio();
+        main.appendChild(this.el);
+        main.appendChild(this.controls);
+
         this.draw();
     }
 }
@@ -627,17 +647,15 @@ async function init() {
 
 init()
     .then(result => {
-        parseFeed(result[0]);
-        window.result = result;
+        parseFeed(result);
     });
 
-/*IDIOTIZM. But no time for passing. SHOW PURPOSE ONLY*/
-window.parseFeed = (feed) => {
-    document.getElementById("main").innerHTML = null;
-    document.getElementById("controls").innerHTML = null;
-    /*CANVAS*/
-    const canvas = new Scene(canavsSize, "mainImg", feed);
-    canvas.setControl(new Control(controlSize));
-    canvas.setInitialGraph();
-    canvas.init();
-}
+const parseFeed = (feed) => {
+    for(let i = 0, k = feed.length; i < k; i++){
+        /*CANVAS*/
+        const canvas = new Scene(canavsSize, "mainImg", feed[i]);
+        canvas.setControl(new Control(controlSize));
+        canvas.setInitialGraph();
+        canvas.init();
+    }
+};
